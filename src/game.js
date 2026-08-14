@@ -42,7 +42,9 @@ export class Game{
   this.level=buildLevel(index);this.scene.background=new THREE.Color(this.level.world.sky);
   this.scene.fog=new THREE.Fog(this.level.world.fog,35,115);this.decor=new Decor(this.scene,this.level.world);
   const cp=this.state.checkpoint&&this.state.checkpoint.level===index?this.state.checkpoint:null;
-  this.player={x:cp?.x??0,y:cp?.y??1,vx:0,vy:0,inputAxis:0,maxSpeed:GAME.playerSpeed,accel:GAME.playerAccel,airAccel:GAME.playerAirAccel,friction:GAME.playerFriction,airFriction:GAME.playerAirFriction,facing:1,grounded:false,jumps:0,inv:0,attack:0,dash:0,dashDirection:1,jumpBuffer:0,coyote:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0,coyote:0,jumpBuffer:0,flash:0};
+  const spawnPlatform=this.level?.platforms?.[0];
+  const spawnY=cp?.y??(spawnPlatform ? spawnPlatform.y+spawnPlatform.h/2+.02 : 1);
+  this.player={x:cp?.x??0,y:spawnY,vx:0,vy:0,inputAxis:0,maxSpeed:GAME.playerSpeed,accel:GAME.playerAccel,airAccel:GAME.playerAirAccel,friction:GAME.playerFriction,airFriction:GAME.playerAirFriction,facing:1,grounded:!cp&&!!spawnPlatform,jumps:0,inv:0,attack:0,dash:0,dashDirection:1,jumpBuffer:0,coyote:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0,coyote:0,jumpBuffer:0,flash:0};
   this.playerModel=makePlayer();this.scene.add(this.playerModel);this.lionModel=makeLion();this.lionModel.visible=false;this.scene.add(this.lionModel);
   this.world.mount(this.level);if(this.level.boss)this.spawnBoss();
   this.state.quest={kind:this.level.cfg.questKind,target:this.level.cfg.questTarget,progress:0,done:false};
@@ -54,13 +56,18 @@ export class Game{
  togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V5.6')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
+  if(!p)return false;
   if(p.grounded||p.coyote>0){
-   p.vy=GAME.jumpSpeed;p.grounded=false;p.coyote=0;p.jumps=1;p.supportPlatform=null;
+   p.vy=GAME.jumpSpeed;p.grounded=false;p.coyote=0;p.jumps=1;p.supportPlatform=null;p.jumpBuffer=0;
    this.state.save.stats.jumps++;this.audio.jump();this.particles.burst(this.playerModel.position,0xffffff,6,3);
-  }else if(this.state.save.unlocks.doubleJump&&p.jumps<2){
-   p.vy=GAME.jumpSpeed*.9;p.jumps++;this.audio.jump();
-   this.particles.burst(this.playerModel.position,0x7de3ff,8,4);
+   return true;
   }
+  if(this.state.save.unlocks.doubleJump&&p.jumps<2){
+   p.vy=GAME.jumpSpeed*.9;p.grounded=false;p.jumps++;p.jumpBuffer=0;this.audio.jump();
+   this.particles.burst(this.playerModel.position,0x7de3ff,8,4);
+   return true;
+  }
+  return false;
  }
  dash(){
   const p=this.player;if(!this.state.save.unlocks.dash||p.dash>0)return;
@@ -137,16 +144,22 @@ export class Game{
   if(this.state.mode!=='play')return;
   const p=this.player;this.input.sync();
   if(this.input.jumpPressed)p.jumpBuffer=GAME.jumpBuffer;
-  if(p.jumpBuffer>0){this.jump();p.jumpBuffer=Math.max(0,p.jumpBuffer-dt)}
   if(this.input.actionPressed)this.attack();if(this.input.dashPressed)this.dash();
-  this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);p.vy+=GAME.gravity*dt;
-  if(this.input.jumpReleased===true&&p.vy>2)p.vy*=.52;p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.coyote=Math.max(0,p.coyote-dt);p.flash=Math.max(0,p.flash-dt);
-  p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.dash<=0&&p.inputAxis===0)p.inputAxis=0;if(p.vx)p.facing=Math.sign(p.vx);
+  this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);
+  p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
   const wasGrounded=p.grounded;
+  p.vy+=GAME.gravity*dt;
   const physics=resolvePlayer(p,this.level.platforms,dt);
   if(physics.landed){p.land=.12;this.particles.burst(this.playerModel.position,0xffffff,5,2.2);this.follow.kick(.035)}
   p.land=Math.max(0,(p.land||0)-dt);
   if(wasGrounded&&!p.grounded&&p.vy<=0)p.coyote=GAME.coyoteTime;
+  else if(p.grounded)p.coyote=0;
+  if(this.input.jumpReleased===true&&p.vy>2)p.vy*=.52;
+  if(p.jumpBuffer>0){
+   p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
+   this.jump();
+  }
+  p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.flash=Math.max(0,p.flash-dt);
   if(p.y<-3)this.hurt(true);
   this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing<0?Math.PI:0;
   const jumpStretch=p.grounded?1:1.05;
