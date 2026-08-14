@@ -1,14 +1,27 @@
-# SUPER MAMA JULIA 64 — Phone / GitHub Pages
+# Super Mama Julia 64 — V5.4.2-phone
 
-## Kein Terminal / kein npm
+## Start
 
-Dieses Paket ist für direkten Betrieb über GitHub Pages ausgelegt.
+```bash
+npm install
+npm run dev
+```
 
-- `index.html` ist der Browser-Einstiegspunkt.
-- `src/` enthält den getrennten JavaScript-Source.
-- Three.js wird direkt als ES-Modul von unpkg geladen.
-- Es gibt keinen Build-Schritt.
+Production build:
 
-## Diagnose
+```bash
+npm run build
+npm run preview
+```
 
-Der Einstieg besitzt einen sichtbaren Boot-Screen. Wenn `main.js`, Three.js oder die Game-Initialisierung fehlschlägt, bleibt der Boot-Screen sichtbar und zeigt den technischen Fehler an, statt nur einen schwarzen Bildschirm zu liefern.
+## V5.4.2-phone Fix
+
+- Startscreen uses the correct `#screen` selector.
+- Explicit z-index layers for canvas, HUD, touch controls and start/pause screen.
+- Startscreen receives pointer events; the canvas cannot cover the menu.
+- Complete `src/` included; no source files omitted.
+
+
+## V5.6 final core
+
+Konsolidierter Runtime-Stand mit gemeinsamem Player/Lion-Physics-Kern, stabilem Sub-Stepping, Coyote-Time/Jump-Buffer-Kompatibilität, Moving-Platform-Landing und bestehender Touch-/Keyboard-Steuerung.
