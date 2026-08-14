@@ -11,10 +11,15 @@ function moveAxis(player,dt){
 
 function step(player,platforms,dt){
  const prevY=player.y,prevVy=player.vy;
+ player.vy=Math.max(player.vy,-24);
  if(player.supportPlatform&&player.grounded&&player.supportPlatform.prevY!==undefined)player.y+=player.supportPlatform.y-player.supportPlatform.prevY;
  player.grounded=false;
  moveAxis(player,dt);
  player.x+=player.vx*dt;
+ // Softly cap horizontal speed after collisions/boosts without killing dash momentum.
+ const hardCap=(player.dash>0?(player.dashSpeed??20):(player.maxSpeed??8.6))*1.08;
+ if(player.dash<=0)player.vx=Math.max(-(player.maxSpeed??8.6),Math.min(player.maxSpeed??8.6,player.vx));
+ else player.vx=Math.max(-hardCap,Math.min(hardCap,player.vx));
  const nextY=player.y+player.vy*dt;
  if(prevVy<=0){
   let landing=null,best=-Infinity;

@@ -65,12 +65,14 @@ export function animateCharacter(model,dt,state={}){
   const swing=moving?Math.sin(cycle)*.48:Math.sin(u.t*2)*.025;
   p.legL.rotation.x=swing;p.legR.rotation.x=-swing;p.armL.rotation.x=-swing*.65;p.armR.rotation.x=swing*.65;
   const bob=air?Math.sin(u.t*10)*.025:Math.abs(Math.sin(cycle))*.035;
+  const lean=moving?THREE.MathUtils.clamp((state.vx||0)*-.018,-.14,.14):0;
+  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,lean+(state.attack?-.12:0),.22);
   model.position.y+=0;
-  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,state.attack?.-0.12:0,.22);
+  
   p.head.rotation.z=THREE.MathUtils.lerp(p.head.rotation.z,state.facing<0?.04:-.04,.08);
   p.scarf.rotation.z=Math.sin(u.t*12)*.08+(state.vx?-.08*state.facing:0);
   p.bun.rotation.z=Math.sin(u.t*8)*.04;
-  model.userData.animBob=bob;
+  model.userData.animBob=bob;model.position.y+=bob*.12;
  }else if(u.kind==='lion'){
   const swing=Math.sin(cycle)*.25;p.mane.rotation.z=swing*.25;p.tail.rotation.z=-.8+Math.sin(u.t*6)*.22;p.body.rotation.z=Math.sin(u.t*4)*.025;
  }else if(u.kind==='bat'){

@@ -1,7 +1,7 @@
 export class Input{
  constructor(){
   this.left=false;this.right=false;this.jump=false;this.action=false;
-  this.jumpPressed=false;this.actionPressed=false;this.dashPressed=false;
+  this.jumpPressed=false;this.jumpReleased=false;this.actionPressed=false;this.dashPressed=false;
   this.keys=new Set();this.touchKeys=new Set();this.bind();
  }
  bind(){
@@ -14,7 +14,7 @@ export class Input{
    }
    this.keys.add(e.code);this.sync();
   });
-  addEventListener('keyup',e=>{this.keys.delete(e.code);this.sync()});
+  addEventListener('keyup',e=>{if(['Space','ArrowUp','KeyW'].includes(e.code))this.jumpReleased=true;this.keys.delete(e.code);this.sync()});
   for(const [id,type] of [['left','left'],['right','right'],['jump','jump'],['action','action'],['dash','dash']])this.touch(id,type);
  }
  sync(){
@@ -41,5 +41,5 @@ export class Input{
   el.addEventListener('pointercancel',release,{passive:false});
   el.addEventListener('pointerleave',release,{passive:false});
  }
- consume(){this.jumpPressed=false;this.actionPressed=false;this.dashPressed=false}
+ consume(){this.jumpPressed=false;this.jumpReleased=false;this.actionPressed=false;this.dashPressed=false}
 }
