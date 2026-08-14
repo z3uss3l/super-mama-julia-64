@@ -38,7 +38,7 @@ npm run dev
 
 `julia.html` und `hulia.html` sind Kompatibilitäts-Einstiegspunkte und leiten auf `index.html` weiter.
 
-## V3.3.1 Fixes
+## V3.3.3 Fixes
 
 - WorldRuntime besitzt seinen eigenen Objekt-Container und entfernt nicht mehr versehentlich das Player-Modell.
 - Levelwechsel entfernt alte Projektile, Partikel, Player- und Löwin-Modelle sauber.
@@ -48,3 +48,9 @@ npm run dev
 ## V3.3.2 Fix
 
 - Dash velocity is no longer overwritten by the normal movement controller during the dash window.
+
+- Dash, item progression and power-up state are persisted consistently.
+- Combat-quest levels are guaranteed to contain at least 6 enemies.
+- Checkpoints activate around the middle of each level.
+- Shield and lion unlocks are applied to subsequent levels.
+- Duplicate item-collection implementation removed from `game.js`.
