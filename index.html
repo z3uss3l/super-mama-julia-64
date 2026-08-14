@@ -1,13 +1,38 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#05070d">
-  <title>Super Mama Julia 64</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#05070d">
+<title>Super Mama Julia 64</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070d}
+#app{width:100%;height:100%}
+#boot{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#18233d 0,#080b12 55%,#030407 100%);color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}
+#bootCard{width:min(720px,94vw);padding:30px 24px;border:1px solid #ffffff22;border-radius:24px;background:#080c15ee;box-shadow:0 25px 100px #000}
+#bootTitle{font-size:clamp(28px,7vw,58px);font-weight:1000;color:#ffd43b;letter-spacing:.02em}
+#bootStatus{margin-top:14px;color:#c9d0df}
+#bootError{display:none;text-align:left;margin-top:18px;padding:14px;border:1px solid #ef4444;border-radius:12px;background:#1b0b0bee;color:#fecaca;white-space:pre-wrap;overflow:auto;max-height:35vh;font:12px ui-monospace,monospace}
+#bootReload{display:none;margin-top:18px;border:1px solid #ffd43b;background:#7d4b00;color:#fff;padding:12px 18px;border-radius:12px;font-weight:900}
+</style>
 </head>
 <body>
-  <main id="app"></main>
-  <script type="module" src="./src/main.js"></script>
+<div id="app"></div>
+<div id="boot"><div id="bootCard"><div id="bootTitle">SUPER MAMA JULIA 64</div><div id="bootStatus">Spiel wird geladen …</div><pre id="bootError"></pre><button id="bootReload" onclick="location.reload()">ERNEUT LADEN</button></div></div>
+<script>
+(function(){
+ const status=document.getElementById('bootStatus'),error=document.getElementById('bootError'),reload=document.getElementById('bootReload'),boot=document.getElementById('boot');
+ window.__juliaBootError=function(e){
+  const msg=String(e&&e.stack||e||'Unbekannter Fehler');
+  status.textContent='STARTFEHLER – das Spiel konnte nicht initialisiert werden.';
+  error.textContent=msg;error.style.display='block';reload.style.display='inline-block';boot.style.display='grid';
+ };
+ window.__juliaBootReady=function(){boot.style.display='none'};
+ window.addEventListener('error',e=>{if(!window.__juliaReady)window.__juliaBootError(e.error||e.message)});
+ window.addEventListener('unhandledrejection',e=>{if(!window.__juliaReady)window.__juliaBootError(e.reason)});
+ import('./src/main.js').catch(window.__juliaBootError);
+ setTimeout(()=>{if(!window.__juliaReady&&boot.style.display!=='none')status.textContent='Noch keine Spiel-Engine erkannt …';},2500);
+})();
+</script>
 </body>
 </html>
