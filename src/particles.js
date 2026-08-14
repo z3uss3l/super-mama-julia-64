@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
 export class Particles{
  constructor(scene){this.scene=scene;this.pool=[]}
  burst(pos,color=0xffffff,count=10,speed=4){

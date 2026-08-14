@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
 
 const M=(c,rough=.82)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,metalness:.04});
 const S=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:.45,metalness:.12});

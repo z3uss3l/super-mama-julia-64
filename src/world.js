@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
 import {makeEnemy,meshBox} from './entities.js';
 import {ENEMY_STATS} from './config.js';
 

@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
 import {LEVELS,WORLDS,BOSS_STATS} from './config.js';
 
 const materialFor=world=>new THREE.MeshBasicMaterial({color:world.ground});

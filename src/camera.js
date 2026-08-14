@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
 export class FollowCamera{
  constructor(camera){this.camera=camera;this.target=new THREE.Vector3();this.desired=new THREE.Vector3();this.shake=0;this.lookAhead=0;this.zoom=0}
  resize(w,h){this.camera.aspect=w/h;this.camera.updateProjectionMatrix()}
