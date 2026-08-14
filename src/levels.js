@@ -24,48 +24,25 @@ export function buildLevel(index) {
     currentY = Math.max(-0.05, Math.min(1.65, currentY - 0.55 + rnd() * 1.45));
     const px = x + gap;
     const platform = { x: px, y: currentY, w: width, h: 0.6, d: 4, mat };
-    platforms.push(platform);
-    lastPlatform = platform;
-
+    platforms.push(platform); lastPlatform = platform;
     if (rnd() < 0.86) items.push({ type: 'coin', x: px + width * 0.28, y: currentY + 1, z: 0 });
     if (rnd() < 0.20) items.push({ type: 'crystal', x: px + width * 0.70, y: currentY + 1.05, z: 0 });
     if (rnd() < 0.10) items.push({ type: 'heart', x: px + width * 0.50, y: currentY + 1.05, z: 0 });
-    if (rnd() < 0.48) {
-      const type = ['slime', 'bat', 'runner', 'turret'][Math.floor(rnd() * 4)];
-      enemies.push({ type, x: px + width * 0.55, y: currentY + 1, z: 0 });
-    }
+    if (rnd() < 0.48) { const type = ['slime','bat','runner','turret'][Math.floor(rnd()*4)]; enemies.push({ type, x: px + width * 0.55, y: currentY + 1, z: 0 }); }
     x = px + width;
   }
+  const platformAt = targetX => platforms.reduce((best,p) => { const d=Math.abs((p.x+p.w*.5)-targetX); return !best||d<best.d?{p,d}:best; },null)?.p||lastPlatform;
+  const placeOnPlatform = (type,targetX) => { const p=platformAt(targetX); const xPos=Math.max(p.x-p.w*.35,Math.min(p.x+p.w*.35,targetX)); items.push({type,x:xPos,y:p.y+p.h/2+1.05,z:0}); };
+  placeOnPlatform('key',cfg.length-12); placeOnPlatform('star',cfg.length-24); if(index%3===0) placeOnPlatform('mushroom',cfg.length-35);
 
-  // Place progression items on actual platforms near their intended x positions.
-  const platformAt = (targetX) => platforms.reduce((best, p) => {
-    const d = Math.abs((p.x + p.w * 0.5) - targetX);
-    return !best || d < best.d ? { p, d } : best;
-  }, null)?.p || lastPlatform;
-  const placeOnPlatform = (type, targetX) => {
-    const p = platformAt(targetX);
-    const xPos = Math.max(p.x - p.w * 0.35, Math.min(p.x + p.w * 0.35, targetX));
-    items.push({ type, x: xPos, y: p.y + p.h / 2 + 1.05, z: 0 });
-  };
-  placeOnPlatform('key', cfg.length - 12);
-  placeOnPlatform('star', cfg.length - 24);
-  if (index % 3 === 0) placeOnPlatform('mushroom', cfg.length - 35);
-
-  // Quests require a real minimum count. Guarantee enough enemies for combat quests.
+  // Combat quests always have enough enemies; collection quests always have enough coins.
   const requiredEnemies = cfg.quest.startsWith('Besiege') ? 6 : 0;
-  let enemySeed = 0;
-  while (enemies.length < requiredEnemies) {
-    const p = platforms[2 + (enemySeed % Math.max(1, platforms.length - 2))];
-    const type = ['slime', 'runner', 'turret'][enemySeed % 3];
-    enemies.push({ type, x: p.x, y: p.y + p.h / 2 + 1, z: 0 });
-    enemySeed++;
-  }
+  const requiredCoins = cfg.quest.startsWith('Sammle') ? 12 : 0;
+  let enemySeed=0, coinSeed=0;
+  while(enemies.length<requiredEnemies){const p=platforms[2+(enemySeed%Math.max(1,platforms.length-2))];const type=['slime','runner','turret'][enemySeed%3];enemies.push({type,x:p.x,y:p.y+p.h/2+1,z:0});enemySeed++;}
+  let coinCount=items.filter(i=>i.type==='coin').length;
+  while(coinCount<requiredCoins){const p=platforms[1+(coinSeed%Math.max(1,platforms.length-1))];items.push({type:'coin',x:p.x+p.w*(0.2+0.6*((coinSeed%5)/4)),y:p.y+p.h/2+1.0,z:0});coinCount++;coinSeed++;}
 
-  for (let i = 0; i < 5 + index; i++) hazards.push({ x: 10 + i * 17, y: -0.05, w: 1.6 + index * 0.05 });
-
-  return {
-    cfg, world, platforms, items, enemies, hazards, goalX: cfg.length - 3,
-    boss: cfg.boss ? { x: cfg.length - 15, y: 2.5, kind: world.id, stats: BOSS_STATS[world.id] || { name: 'Waldwächter', hp: 10, speed: 2.2, projectile: 3 } } : null,
-    moving
-  };
+  for(let i=0;i<5+index;i++) hazards.push({x:10+i*17,y:-0.05,w:1.6+index*0.05});
+  return {cfg,world,platforms,items,enemies,hazards,goalX:cfg.length-3,boss:cfg.boss?{x:cfg.length-15,y:2.5,kind:world.id,stats:BOSS_STATS[world.id]||{name:'Waldwächter',hp:10,speed:2.2,projectile:3}}:null,moving};
 }
