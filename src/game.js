@@ -148,7 +148,7 @@ export class Game{
   this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);
   p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
   const wasGrounded=p.grounded;
-  p.vy-=GAME.gravity*dt;
+  p.vy+=GAME.gravity*dt;
   const physics=resolvePlayer(p,this.level.platforms,dt);
   if(physics.landed){p.land=.12;this.particles.burst(this.playerModel.position,0xffffff,5,2.2);this.follow.kick(.035)}
   p.land=Math.max(0,(p.land||0)-dt);
