@@ -7,7 +7,7 @@ export class UI{
     <div id="objective"></div><div id="abilities"></div><div id="combo"></div>
     <div id="boss"><b id="bossName"></b><div><i id="bossFill"></i></div></div><div id="toast"></div>
    </div>
-   <div id="screen"><section><div class="eyebrow">SUPER MAMA JULIA 64</div><h1 id="screenTitle">REBORN</h1><h2 id="screenSub">V5.0</h2><p id="screenText"></p><div class="buttons"><button id="new">NEUES SPIEL</button><button id="continue">FORTSETZEN</button><button id="saveReset">SAVE LÖSCHEN</button></div><small>← → / A D · Springen Space/W · Angriff E/X · Dash Shift/F · Pause P</small></section></div>
+   <div id="screen"><section><div class="eyebrow">SUPER MAMA JULIA 64</div><h1 id="screenTitle">REBORN</h1><h2 id="screenSub">V5.2</h2><p id="screenText"></p><div class="buttons"><button id="new">NEUES SPIEL</button><button id="continue">FORTSETZEN</button><button id="saveReset">SAVE LÖSCHEN</button></div><small>← → / A D · Springen Space/W · Angriff E/X · Dash Shift/F · Pause P</small></section></div>
    <div id="touch"><div><button id="left">◀</button><button id="right">▶</button></div><div><button id="dash">↯</button><button id="action">⚡</button><button id="jump">▲</button></div></div></div>`;
   this.style();
  }

@@ -2,47 +2,87 @@ import * as THREE from 'three';
 import {LEVELS,WORLDS,BOSS_STATS} from './config.js';
 
 const materialFor=world=>new THREE.MeshBasicMaterial({color:world.ground});
-const rngSeed=n=>()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296};
+const addPlatform=(arr,x,y,w,h=.65,mat,extra={})=>{
+ const p={x,y,w,h,d:5,mat,...extra};arr.push(p);return p;
+};
+const addCoinLine=(items,x,y,count,spacing=.9)=>{
+ for(let i=0;i<count;i++)items.push({type:'coin',x:x+i*spacing,y,z:0});
+};
+const addEnemy=(enemies,type,x,y)=>enemies.push({type,x,y,z:0});
 
 export function buildLevel(index){
- const cfg=LEVELS[index],world=WORLDS[cfg.world],r=rngSeed((index+1)*9719);
+ const cfg=LEVELS[index],world=WORLDS[cfg.world],mat=materialFor(world);
  const platforms=[],items=[],enemies=[],hazards=[],moving=[];
- const mat=materialFor(world);
- platforms.push({x:0,y:-.45,w:18,h:.8,d:5,mat});
- let x=9,y=.1;
-
- while(x<cfg.length-16){
-  const gap=.7+r()*1.15,w=4.5+r()*3.8;
-  y=Math.max(-.05,Math.min(1.7,y+(-.35+r()*1.05)));
-  const p={x:x+gap,y,w,h:.65,d:5,mat};
-  if(r()<.18){p.baseY=y;p.move={amp:.35+r()*.4,speed:.6+r()*.6,phase:r()*6};moving.push(p)}
-  platforms.push(p);
-  const cx=p.x+p.w*.5;
-  items.push({type:'coin',x:cx-.9,y:y+1.05,z:0},{type:'coin',x:cx+.15,y:y+1.05,z:0});
-  if(r()<.65)items.push({type:'coin',x:cx+1.05,y:y+1.05,z:0});
-  if(r()<.3)items.push({type:'crystal',x:cx,y:y+1.25,z:0});
-  if(r()<.14)items.push({type:'heart',x:cx,y:y+1.25,z:0});
-  if(r()<.62)enemies.push({type:['slime','bat','runner','turret'][Math.floor(r()*4)],x:cx,y:y+1,z:0});
-  x=p.x+p.w;
+ const patterns=[
+  [
+   [0,-.45,18], [20,.1,7], [29,.55,5], [38,.1,8], [49,.8,6], [58,.15,10],
+   [71,.55,7], [81,1.1,5], [90,.35,11], [104,.8,8], [115,.1,10], [128,.55,9]
+  ],
+  [
+   [0,-.45,16], [19,.2,5], [27,1.0,5], [35,.2,5], [43,.9,6], [54,.15,7],
+   [66,1.25,5], [75,.2,6], [86,.8,7], [98,.15,5], [108,1.1,6], [120,.3,10], [134,.7,10]
+  ],
+  [
+   [0,-.45,20], [22,.1,9], [34,.1,9], [46,.9,5], [55,.9,5], [64,.1,8],
+   [76,.75,6], [87,.1,9], [100,1.0,5], [109,.35,8], [121,.95,6], [131,.25,14]
+  ]
+ ];
+ const pat=patterns[cfg.index%3];
+ for(let i=0;i<pat.length;i++){
+  const [x,y,w]=pat[i];
+  const movingHere=(i>1 && i%5===0);
+  addPlatform(platforms,x,y,w,.65,mat,movingHere?{baseY:y,move:{amp:.35,speed:.65+(i%3)*.18,phase:i}}:{});
+  if(movingHere)moving.push(platforms.at(-1));
  }
 
- const arenaY=Math.max(0,Math.min(1.3,y));
- platforms.push({x:cfg.length-7,y:arenaY,w:16,h:.85,d:5,mat});
- const arena=platforms.at(-1);
- items.push({type:'key',x:arena.x-2,y:arena.y+1.2,z:0},{type:'star',x:arena.x+1,y:arena.y+1.2,z:0});
- while(items.filter(i=>i.type==='coin').length<14){
-  const p=platforms[1+Math.floor(r()*Math.max(1,platforms.length-2))];
-  items.push({type:'coin',x:p.x,y:p.y+1.05,z:0});
+ // Extend late-game levels without turning the layout into an endless random corridor.
+ const last=platforms.at(-1);
+ if(last.x+last.w/2<cfg.length-8)addPlatform(platforms,cfg.length-8,.45,14,.85,mat);
+ const arena=addPlatform(platforms,cfg.length+2,.55,18,.85,mat);
+
+ // Coins are placed as readable routes: reward the intended jump arc.
+ for(let i=0;i<platforms.length;i++){
+  const p=platforms[i];
+  const count=Math.min(5,Math.max(2,Math.floor(p.w/2)));
+  const start=p.x-(count-1)*.45;
+  addCoinLine(items,start,p.y+1.0,count,.9);
  }
- while(enemies.length<(cfg.questKind==='kills'?8:6)){
-  const p=platforms[1+Math.floor(r()*Math.max(1,platforms.length-2))];
-  enemies.push({type:['slime','runner','bat'][enemies.length%3],x:p.x+p.w*.55,y:p.y+1,z:0});
+ // Vertical challenge coins and utility pickups.
+ for(let i=2;i<platforms.length-2;i+=4){
+  const p=platforms[i];
+  items.push({type:i%8===0?'heart':'crystal',x:p.x,y:p.y+1.65,z:0});
  }
+ items.push({type:'key',x:arena.x-3,y:arena.y+1.25,z:0});
+ if(cfg.boss)items.push({type:'star',x:arena.x+1,y:arena.y+1.3,z:0});
+
+ // Deliberate enemy roles: opener -> pressure -> recovery -> encounter.
+ for(let i=1;i<platforms.length-1;i++){
+  const p=platforms[i];
+  const role=i%6;
+  if(role===1)addEnemy(enemies,'slime',p.x,p.y+1);
+  if(role===2)addEnemy(enemies,'runner',p.x+p.w*.35,p.y+1);
+  if(role===3)addEnemy(enemies,'bat',p.x+p.w*.5,p.y+1.7);
+  if(role===4)addEnemy(enemies,'turret',p.x+p.w*.7,p.y+1);
+  if(role===5){addEnemy(enemies,'slime',p.x-p.w*.2,p.y+1);addEnemy(enemies,'bat',p.x+p.w*.25,p.y+1.7)}
+ }
+ // Every level gets a minimum number of encounters, but placement stays deterministic.
+ const minimum=cfg.questKind==='kills'?10:7;
+ let cursor=2;
+ while(enemies.length<minimum){
+  const p=platforms[cursor++%(platforms.length-2)+1];
+  addEnemy(enemies,['slime','runner','bat'][enemies.length%3],p.x,p.y+1);
+ }
+
+ // Explicit hazard gaps; landing surfaces remain wide enough for the collision model.
  for(let i=0;i<platforms.length-1;i++){
   const a=platforms[i],b=platforms[i+1];
-  const gapW=b.x-b.w/2-(a.x+a.w/2);
-  if(gapW>.85)hazards.push({x:(a.x+a.w/2+b.x-b.w/2)/2,y:-.45,w:gapW,h:.5});
+  const gap=b.x-b.w/2-(a.x+a.w/2);
+  if(gap>.9)hazards.push({x:(a.x+a.w/2+b.x-b.w/2)/2,y:-.45,w:gap,h:.5});
  }
- const boss=cfg.boss?{x:arena.x+1.5,y:arena.y+2,stats:BOSS_STATS[world.id]||{name:'Wächter',hp:12,speed:2.4,aggro:12,projectile:4}}:null;
- return {cfg,world,platforms,items,enemies,hazards,goalX:arena.x+5,boss,moving};
+
+ const boss=cfg.boss
+  ? {x:arena.x+2,y:arena.y+2,stats:BOSS_STATS[world.id]||{name:'Wächter',hp:12,speed:2.4,aggro:12,projectile:4}}
+  : null;
+
+ return {cfg,world,platforms,items,enemies,hazards,goalX:arena.x+6,boss,moving};
 }

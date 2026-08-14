@@ -100,8 +100,11 @@ export class Game{
     if(dist<st.aggro)e.mesh.position.x+=Math.sign(dx)*st.speed*dt*.75;
     e.mesh.position.y=e.y+Math.sin(e.phase*3)*.7;
    }else{
-    if(dist<st.aggro)e.mesh.position.x+=Math.sign(dx)*st.speed*dt;
-    else e.mesh.position.x+=Math.sin(e.phase)*st.speed*.12*dt;
+    const direction=dist<st.aggro?Math.sign(dx):Math.sign(Math.sin(e.phase));
+    const proposed=e.mesh.position.x+direction*st.speed*dt;
+    const platform=this.level.platforms.find(p=>Math.abs(p.y-(e.y-1))<.18&&Math.abs(proposed-p.x)<=p.w/2+.05);
+    const edgeSafe=platform&&Math.abs(proposed-p.x)<=Math.max(.4,platform.w/2-.35);
+    e.mesh.position.x=edgeSafe?proposed:e.mesh.position.x;
     e.mesh.position.y=e.y;
    }
    if(p.contact<=0&&dist<st.contactRange&&Math.abs(e.mesh.position.y-p.y)<st.contactHeight){this.hurt();p.contact=.8}
@@ -114,9 +117,11 @@ export class Game{
   if(dist<b.stats.aggro)b.mesh.position.x+=Math.sign(dx)*b.stats.speed*dt*.55;
   b.mesh.position.y=this.level.boss.y+Math.sin(b.phase*1.7)*.75;
   if(dist<b.stats.aggro&&b.attackTimer<=0){
-   const n=Math.min(6,2+Math.floor((b.maxHp-b.hp)/5));
-   for(let i=0;i<n;i++)this.projectile(b.mesh.position.x,b.mesh.position.y,Math.sign(dx)||1,(i-(n-1)/2)*.55);
-   b.attackTimer=Math.max(.65,1.45-(b.maxHp-b.hp)*.025)
+   const phase=b.hp<=b.maxHp*.5?2:b.hp<=b.maxHp*.75?1:0;
+   const n=phase===2?7:phase===1?5:3;
+   const spread=phase===2?.7:.55;
+   for(let i=0;i<n;i++)this.projectile(b.mesh.position.x,b.mesh.position.y,Math.sign(dx)||1,(i-(n-1)/2)*spread);
+   b.attackTimer=phase===2?.62:phase===1?.9:1.25;
   }
   if(this.player.contact<=0&&dist<1.0&&Math.abs(b.mesh.position.y-this.player.y)<1.5){this.hurt();this.player.contact=.9}
  }
@@ -161,7 +166,7 @@ export class Game{
  }
  completeLevel(){
   if(this.state.mode!=='play')return;
-  const q=this.state.quest;if(!q.done){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('❗ Quest noch nicht erfüllt')}return}
+  const q=this.state.quest;if(!q.done){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast(`❗ ${this.level.cfg.quest} noch offen`)}return}
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===5)this.state.unlock('lion');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');

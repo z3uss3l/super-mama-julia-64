@@ -3,7 +3,7 @@ import {makeEnemy,meshBox} from './entities.js';
 import {ENEMY_STATS} from './config.js';
 
 export class WorldRuntime{
- constructor(scene){this.scene=scene;this.objects=[];this.enemies=[];this.items=[];this.level=null;this.boss=null;this.goal=null}
+ constructor(scene){this.scene=scene;this.objects=[];this.enemies=[];this.items=[];this.level=null;this.boss=null;this.goal=null;this.goalPulse=0}
  clear(){for(const o of this.objects)this.scene.remove(o);this.objects=[];this.enemies=[];this.items=[];this.boss=null;this.goal=null;this.level=null}
  mount(level){
   this.clear();this.level=level;
