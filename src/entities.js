@@ -1,5 +1,39 @@
 import * as THREE from 'three';
+
 export function meshBox(w,h,d,mat){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat)}
-export function makePlayer(){const g=new THREE.Group();const mat=(c)=>new THREE.MeshBasicMaterial({color:c});const body=meshBox(.55,.8,.45,mat(0x376bd8));body.position.y=.55;g.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.36,10,8),mat(0xf6c7a5));head.position.y=1.2;g.add(head);const hair=new THREE.Mesh(new THREE.SphereGeometry(.41,10,8),mat(0xf4c430));hair.scale.set(1,.95,1.08);hair.position.y=1.29;g.add(hair);const back=meshBox(.44,.7,.18,mat(0xf4c430));back.position.set(0,.95,-.27);g.add(back);for(const x of[-.12,.12]){const eye=meshBox(.055,.055,.03,mat(0x050505));eye.position.set(x,1.2,.33);g.add(eye)}for(const x of[-.17,.17]){const foot=meshBox(.15,.5,.16,mat(0x27202b));foot.position.set(x,.03,.04);g.add(foot)}g.userData={height:1.55};return g}
-export function makeLion(){const g=new THREE.Group();const mat=(c)=>new THREE.MeshBasicMaterial({color:c});const mane=new THREE.Mesh(new THREE.SphereGeometry(.7,10,8),mat(0xff6500));mane.scale.set(1,.75,.78);mane.position.y=.7;g.add(mane);const body=meshBox(1.05,.62,.72,mat(0xe88a18));body.position.y=.62;g.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.5,10,8),mat(0xe88a18));head.position.set(.45,.92,0);g.add(head);return g}
-export function makeEnemy(type,boss=false){const g=new THREE.Group();const colors={slime:0x5bc34b,bat:0xff3b43,runner:0x8b5cf6,turret:0xffa21c};const mat=new THREE.MeshBasicMaterial({color:colors[type]||0xffffff});if(type==='turret'){g.add(meshBox(.7,.9,.7,mat));for(const z of[-.25,.25]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.08,6,5),new THREE.MeshBasicMaterial({color:0xffffff}));eye.position.set(.2,.15,z);g.add(eye)}}else{const b=new THREE.Mesh(new THREE.SphereGeometry(boss?.7:.42,8,6),mat);b.scale.y=.8;g.add(b);if(type==='bat'){for(const z of[-.45,.45]){const w=meshBox(.55,.1,.3,mat);w.position.z=z;g.add(w)}}}return g}
+
+const M=c=>new THREE.MeshBasicMaterial({color:c});
+
+export function makePlayer(){
+ const g=new THREE.Group();
+ const body=meshBox(.58,.78,.45,M(0x376bd8));body.position.y=.58;g.add(body);
+ const apron=meshBox(.64,.42,.47,M(0xffffff));apron.position.set(0,.5,.24);g.add(apron);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.37,12,10),M(0xf6c7a5));head.position.y=1.23;g.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.43,12,10),M(0xf4c430));hair.scale.set(1,.96,1.08);hair.position.y=1.31;g.add(hair);
+ const bun=new THREE.Mesh(new THREE.SphereGeometry(.18,10,8),M(0xf4c430));bun.position.set(-.27,1.5,0);g.add(bun);
+ for(const x of[-.12,.12]){const eye=meshBox(.055,.055,.03,M(0x050505));eye.position.set(x,1.22,.35);g.add(eye)}
+ for(const x of[-.18,.18]){const foot=meshBox(.16,.42,.18,M(0x29202b));foot.position.set(x,.05,.05);g.add(foot)}
+ g.userData.height=1.65;return g;
+}
+
+export function makeLion(){
+ const g=new THREE.Group(),mane=new THREE.Mesh(new THREE.SphereGeometry(.68,12,10),M(0xff6500));
+ mane.scale.set(1,.78,.8);mane.position.y=.72;g.add(mane);
+ const body=meshBox(1.08,.62,.72,M(0xe88a18));body.position.y=.62;g.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.5,12,10),M(0xe88a18));head.position.set(.45,.96,0);g.add(head);
+ return g;
+}
+
+export function makeEnemy(type,boss=false){
+ const g=new THREE.Group(),colors={slime:0x5bc34b,bat:0xff3b43,runner:0x8b5cf6,turret:0xffa21c};
+ const mat=M(colors[type]||0xffffff);
+ if(type==='turret'){g.add(meshBox(.7,.9,.7,mat));}
+ else{
+  const b=new THREE.Mesh(new THREE.SphereGeometry(boss?.72:.43,10,8),mat);b.scale.y=.8;g.add(b);
+  if(type==='bat'){for(const z of[-.45,.45]){const w=meshBox(.55,.1,.3,mat);w.position.z=z;g.add(w)}}
+ }
+ if(boss){
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.9,.06,8,24),M(0xffd43b));ring.rotation.x=Math.PI/2;ring.position.y=.1;g.add(ring);
+ }
+ return g;
+}
