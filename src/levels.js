@@ -37,13 +37,29 @@ export function buildLevel(index) {
     x = px + width;
   }
 
-  // Place progression items on real platforms rather than at arbitrary heights.
-  const endPlatform = lastPlatform;
-  const safeX = Math.min(endPlatform.x + endPlatform.w * 0.5, cfg.length - 4);
-  items.push({ type: 'key', x: Math.max(10, cfg.length - 12), y: endPlatform.y + 1.05, z: 0 });
-  items.push({ type: 'star', x: Math.max(10, cfg.length - 24), y: endPlatform.y + 1.05, z: 0 });
-  if (index % 3 === 0) items.push({ type: 'mushroom', x: Math.max(10, cfg.length - 35), y: endPlatform.y + 1.05, z: 0 });
-  void safeX;
+  // Place progression items on actual platforms near their intended x positions.
+  const platformAt = (targetX) => platforms.reduce((best, p) => {
+    const d = Math.abs((p.x + p.w * 0.5) - targetX);
+    return !best || d < best.d ? { p, d } : best;
+  }, null)?.p || lastPlatform;
+  const placeOnPlatform = (type, targetX) => {
+    const p = platformAt(targetX);
+    const xPos = Math.max(p.x - p.w * 0.35, Math.min(p.x + p.w * 0.35, targetX));
+    items.push({ type, x: xPos, y: p.y + p.h / 2 + 1.05, z: 0 });
+  };
+  placeOnPlatform('key', cfg.length - 12);
+  placeOnPlatform('star', cfg.length - 24);
+  if (index % 3 === 0) placeOnPlatform('mushroom', cfg.length - 35);
+
+  // Quests require a real minimum count. Guarantee enough enemies for combat quests.
+  const requiredEnemies = cfg.quest.startsWith('Besiege') ? 6 : 0;
+  let enemySeed = 0;
+  while (enemies.length < requiredEnemies) {
+    const p = platforms[2 + (enemySeed % Math.max(1, platforms.length - 2))];
+    const type = ['slime', 'runner', 'turret'][enemySeed % 3];
+    enemies.push({ type, x: p.x, y: p.y + p.h / 2 + 1, z: 0 });
+    enemySeed++;
+  }
 
   for (let i = 0; i < 5 + index; i++) hazards.push({ x: 10 + i * 17, y: -0.05, w: 1.6 + index * 0.05 });
 
