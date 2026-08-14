@@ -1,4 +1,4 @@
-# Super Mama Julia 64 — V3 modular
+# Super Mama Julia 64 — V3.3 modular
 
 Modulare Three.js-Browsergame-Basis.
 
@@ -38,7 +38,7 @@ npm run dev
 
 `julia.html` und `hulia.html` sind Kompatibilitäts-Einstiegspunkte und leiten auf `index.html` weiter.
 
-## V3.1 Fixes
+## V3.3.1 Fixes
 
 - WorldRuntime besitzt seinen eigenen Objekt-Container und entfernt nicht mehr versehentlich das Player-Modell.
 - Levelwechsel entfernt alte Projektile, Partikel, Player- und Löwin-Modelle sauber.
