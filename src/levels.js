@@ -1,55 +1,32 @@
 import * as THREE from 'three';
-import { LEVELS, WORLDS, BOSS_STATS } from './config.js';
-
-const mats = {
-  grass: new THREE.MeshBasicMaterial({ color: 0x4e8b4a }),
-  rock: new THREE.MeshBasicMaterial({ color: 0x777b88 }),
-  ice: new THREE.MeshBasicMaterial({ color: 0xa8e6ff }),
-  neon: new THREE.MeshBasicMaterial({ color: 0x25215a })
-};
-
-export function buildLevel(index) {
-  const cfg = LEVELS[index];
-  const world = WORLDS[cfg.world];
-  const platforms = [], items = [], enemies = [], hazards = [], moving = [];
-  const mat = world.id === 'ice' ? mats.ice : world.id === 'neon' ? mats.neon : world.id === 'canyon' ? mats.rock : mats.grass;
-  platforms.push({ x: 0, y: -0.45, w: 18, h: 0.8, d: 5, mat });
-  let x = 8, currentY = 0.15, lastPlatform = platforms[0];
-  let seed = (index + 1) * 991;
-  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-
-  while (x < cfg.length) {
-    const gap = 0.8 + rnd() * 1.5;
-    const width = 3.6 + rnd() * 4.6;
-    currentY = Math.max(-0.05, Math.min(1.65, currentY - 0.55 + rnd() * 1.45));
-    const px = x + gap;
-    const platform = { x: px, y: currentY, w: width, h: 0.6, d: 4, mat };
-    platforms.push(platform);
-    lastPlatform = platform;
-
-    if (rnd() < 0.86) items.push({ type: 'coin', x: px + width * 0.28, y: currentY + 1, z: 0 });
-    if (rnd() < 0.20) items.push({ type: 'crystal', x: px + width * 0.70, y: currentY + 1.05, z: 0 });
-    if (rnd() < 0.10) items.push({ type: 'heart', x: px + width * 0.50, y: currentY + 1.05, z: 0 });
-    if (rnd() < 0.48) {
-      const type = ['slime', 'bat', 'runner', 'turret'][Math.floor(rnd() * 4)];
-      enemies.push({ type, x: px + width * 0.55, y: currentY + 1, z: 0 });
-    }
-    x = px + width;
-  }
-
-  // Place progression items on real platforms rather than at arbitrary heights.
-  const endPlatform = lastPlatform;
-  const safeX = Math.min(endPlatform.x + endPlatform.w * 0.5, cfg.length - 4);
-  items.push({ type: 'key', x: Math.max(10, cfg.length - 12), y: endPlatform.y + 1.05, z: 0 });
-  items.push({ type: 'star', x: Math.max(10, cfg.length - 24), y: endPlatform.y + 1.05, z: 0 });
-  if (index % 3 === 0) items.push({ type: 'mushroom', x: Math.max(10, cfg.length - 35), y: endPlatform.y + 1.05, z: 0 });
-  void safeX;
-
-  for (let i = 0; i < 5 + index; i++) hazards.push({ x: 10 + i * 17, y: -0.05, w: 1.6 + index * 0.05 });
-
-  return {
-    cfg, world, platforms, items, enemies, hazards, goalX: cfg.length - 3,
-    boss: cfg.boss ? { x: cfg.length - 15, y: 2.5, kind: world.id, stats: BOSS_STATS[world.id] || { name: 'Waldwächter', hp: 10, speed: 2.2, projectile: 3 } } : null,
-    moving
-  };
+import {LEVELS,WORLDS,BOSS_STATS} from './config.js';
+const mats={grass:new THREE.MeshBasicMaterial({color:0x4e8b4a}),rock:new THREE.MeshBasicMaterial({color:0x777b88}),ice:new THREE.MeshBasicMaterial({color:0xa8e6ff}),neon:new THREE.MeshBasicMaterial({color:0x25215a})};
+export function buildLevel(index){
+ const cfg=LEVELS[index],world=WORLDS[cfg.world],platforms=[],items=[],enemies=[],hazards=[],moving=[];
+ const mat=world.id==='ice'?mats.ice:world.id==='neon'?mats.neon:world.id==='canyon'?mats.rock:mats.grass;
+ platforms.push({x:0,y:-.45,w:18,h:.8,d:5,mat});
+ let x=8,currentY=.15,seed=(index+1)*991;
+ const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ while(x<cfg.length-8){
+   const gap=.8+rnd()*1.5,width=3.8+rnd()*4.5;
+   currentY=Math.max(-.05,Math.min(1.8,currentY-.45+rnd()*1.35));
+   const px=x+gap,p={x:px,y:currentY,w:width,h:.6,d:4,mat};
+   if(rnd()<.18){p.baseY=currentY;p.move={axis:'y',amp:.55+rnd()*.45,speed:.65+rnd()*.55,phase:rnd()*6};moving.push(p)}
+   platforms.push(p);
+   items.push({type:'coin',x:px+width*.28,y:currentY+1,z:0});
+   if(rnd()<.65)items.push({type:'coin',x:px+width*.55,y:currentY+1,z:0});
+   if(rnd()<.35)items.push({type:'crystal',x:px+width*.78,y:currentY+1.05,z:0});
+   if(rnd()<.13)items.push({type:'heart',x:px+width*.5,y:currentY+1.05,z:0});
+   if(rnd()<.58){const type=['slime','bat','runner','turret'][Math.floor(rnd()*4)];enemies.push({type,x:px+width*.58,y:currentY+1,z:0});}
+   x=px+width;
+ }
+ const last=platforms[platforms.length-1];
+ const place=(type,ratio,extra=1.05)=>{const p=platforms[Math.max(1,Math.floor((platforms.length-1)*ratio))]||last;items.push({type,x:p.x+p.w*.5,y:p.y+extra,z:0})};
+ // Guaranteed progression pickups and quest budget.
+ while(items.filter(i=>i.type==='coin').length<14){const p=platforms[1+(items.length%Math.max(1,platforms.length-1))];items.push({type:'coin',x:p.x+p.w*.35,y:p.y+1,z:0})}
+ while(enemies.length<Math.max(7,cfg.questKind==='kills'?8:6)){const p=platforms[2+(enemies.length%Math.max(1,platforms.length-2))];enemies.push({type:['slime','runner','bat'][enemies.length%3],x:p.x+p.w*.65,y:p.y+1,z:0})}
+ place('star',.72);if(index%3===0)place('mushroom',.55);place('key',.84);
+ for(let i=0;i<platforms.length-1;i++){const a=platforms[i],b=platforms[i+1],gapCenter=(a.x+a.w/2+b.x-b.w/2)/2,gapWidth=Math.max(0,b.x-b.w/2-(a.x+a.w/2));if(gapWidth>.9)hazards.push({x:gapCenter,y:-.45,w:gapWidth,h:.5})}
+ const boss=cfg.boss?{x:cfg.length-12,y:2.4,kind:world.id,stats:BOSS_STATS[world.id]||{name:'Waldwächter',hp:10,speed:2.2,projectile:3}}:null;
+ return {cfg,world,platforms,items,enemies,hazards,goalX:cfg.length-3,boss,moving};
 }
