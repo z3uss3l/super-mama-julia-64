@@ -1,0 +1,2 @@
+export function overlap(a,b){return Math.abs(a.x-b.x)<(a.w+b.w)/2&&Math.abs(a.y-b.y)<(a.h+b.h)/2}
+export function resolvePlayer(player,platforms,dt){player.grounded=false;for(const p of platforms){const dx=Math.abs(player.x-p.x),dy=player.y-p.y;if(dx<(p.w/2+.38)&&player.vy<=0&&dy>=p.h/2-.25&&dy<=p.h/2+.65){player.y=p.y+p.h/2;player.vy=0;player.grounded=true;break}}player.x+=player.vx*dt;player.y+=player.vy*dt;return player}

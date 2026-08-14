@@ -1,0 +1,6 @@
+import {GAME} from './config.js';
+const defaults=()=>({version:3,level:0,score:0,coins:0,lives:3,secrets:[],bestTimes:{},unlocks:{doubleJump:false,dash:false,shield:false,starPower:false,lion:false},stats:{kills:0,jumps:0,dashes:0,damage:0},settings:{audio:true}});
+export function loadSave(){try{const raw=localStorage.getItem(GAME.saveKey);if(!raw)return defaults();const x=JSON.parse(raw);return {...defaults(),...x,unlocks:{...defaults().unlocks,...x.unlocks},stats:{...defaults().stats,...x.stats}}}catch{return defaults()}}
+export function saveGame(s){localStorage.setItem(GAME.saveKey,JSON.stringify(s))}
+export function clearSave(){localStorage.removeItem(GAME.saveKey);return defaults()}
+export class RuntimeState{constructor(){this.save=loadSave();this.resetRun();}resetRun(){this.level=0;this.score=this.save.score;this.coins=this.save.coins;this.lives=this.save.lives;this.combo=0;this.comboTimer=0;this.quest={kind:'',target:0,progress:0,done:false};this.checkpoint=null;this.paused=false;this.mode='menu';this.levelStart=0;this.levelBest=Infinity;this.boss=null;}persist(){this.save={...this.save,level:this.level,score:this.score,coins:this.coins,lives:this.lives};saveGame(this.save)}newGame(){this.save=defaults();this.resetRun()}unlock(k){this.save.unlocks[k]=true}addScore(n){this.score+=n;this.save.score=this.score} }
