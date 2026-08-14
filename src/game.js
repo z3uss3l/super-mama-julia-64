@@ -20,7 +20,7 @@ export class Game{
   this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.setupLighting();
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
   this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
-  this.player=null;this.playerModel=null;this.lionModel=null;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;
+  this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;
   this.bind();this.resize();addEventListener('resize',()=>this.resize());this.ui.setAbilities(this.state.save.unlocks);this.loop();
  }
  setupLighting(){
@@ -45,7 +45,7 @@ export class Game{
   const spawnPlatform=this.level?.platforms?.[0];
   const spawnY=cp?.y??(spawnPlatform ? spawnPlatform.y+spawnPlatform.h/2+.02 : 1);
   this.player={x:cp?.x??0,y:spawnY,vx:0,vy:0,inputAxis:0,maxSpeed:GAME.playerSpeed,accel:GAME.playerAccel,airAccel:GAME.playerAirAccel,friction:GAME.playerFriction,airFriction:GAME.playerAirFriction,facing:1,grounded:!cp&&!!spawnPlatform,jumps:0,inv:0,attack:0,dash:0,dashDirection:1,jumpBuffer:0,coyote:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0,coyote:0,jumpBuffer:0,flash:0};
-  this.playerModel=makePlayer();this.scene.add(this.playerModel);this.lionModel=makeLion();this.lionModel.visible=false;this.scene.add(this.lionModel);
+  this.jumpHeldLast=false;this.playerModel=makePlayer();this.scene.add(this.playerModel);this.lionModel=makeLion();this.lionModel.visible=false;this.scene.add(this.lionModel);
   this.world.mount(this.level);if(this.level.boss)this.spawnBoss();
   this.state.quest={kind:this.level.cfg.questKind,target:this.level.cfg.questTarget,progress:0,done:false};
   this.state.levelStart=performance.now();this.state.bossDefeated=false;
@@ -143,7 +143,9 @@ export class Game{
  update(dt){
   if(this.state.mode!=='play')return;
   const p=this.player;this.input.sync();
-  if(this.input.jumpPressed)p.jumpBuffer=GAME.jumpBuffer;
+  const jumpDown=this.input.jump===true;
+  const jumpEdge=this.input.jumpPressed===true || (jumpDown&&!this.jumpHeldLast);
+  if(jumpEdge)p.jumpBuffer=GAME.jumpBuffer;
   if(this.input.actionPressed)this.attack();if(this.input.dashPressed)this.dash();
   this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);
   p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
@@ -185,6 +187,7 @@ export class Game{
   if(p.x>this.level.goalX)this.completeLevel();
   this.follow.follow(p.x,p.y,dt,p.vx,p.vy);
   this.ui.setStats({score:this.state.score,coins:this.state.coins,lives:this.state.lives,combo:this.state.combo});
+  this.jumpHeldLast=jumpDown;
   this.input.consume();
  }
  completeLevel(){
