@@ -140,7 +140,7 @@ export class Game{
   if(p.jumpBuffer>0){this.jump();p.jumpBuffer=Math.max(0,p.jumpBuffer-dt)}
   if(this.input.actionPressed)this.attack();if(this.input.dashPressed)this.dash();
   this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);p.vy+=GAME.gravity*dt;
-  if(this.input.jumpReleased&&p.vy>2)p.vy*=.52;p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.coyote=Math.max(0,p.coyote-dt);p.flash=Math.max(0,p.flash-dt);
+  if(this.input.jumpReleased===true&&p.vy>2)p.vy*=.52;p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.coyote=Math.max(0,p.coyote-dt);p.flash=Math.max(0,p.flash-dt);
   p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.dash<=0&&p.inputAxis===0)p.inputAxis=0;if(p.vx)p.facing=Math.sign(p.vx);
   const wasGrounded=p.grounded;
   const physics=resolvePlayer(p,this.level.platforms,dt);
