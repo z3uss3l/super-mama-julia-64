@@ -10,6 +10,7 @@ import {resolvePlayer} from './physics.js';
 import {WorldRuntime} from './world.js';
 import {FollowCamera} from './camera.js';
 import {Progression} from './progression.js';
+import {Decor} from './decor.js';
 
 export class Game{
  constructor(ui){
@@ -18,7 +19,7 @@ export class Game{
   this.renderer=new THREE.WebGLRenderer({canvas:document.getElementById('canvas'),antialias:true,powerPreference:'high-performance'});
   this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));this.renderer.outputColorSpace=THREE.SRGBColorSpace;
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
-  this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);
+  this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
   this.player=null;this.playerModel=null;this.lionModel=null;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;
   this.bind();this.resize();addEventListener('resize',()=>this.resize());this.ui.setAbilities(this.state.save.unlocks);this.loop();
  }
@@ -29,15 +30,15 @@ export class Game{
   addEventListener('keydown',e=>{if(e.code==='KeyP'||e.code==='Escape')this.togglePause()});
  }
  resize(){const w=innerWidth,h=innerHeight;this.renderer.setSize(w,h,false);this.follow.resize(w,h)}
- clear(){this.world.clear();this.particles.clear();for(const p of this.projectiles)this.scene.remove(p.mesh);this.projectiles=[];if(this.playerModel)this.scene.remove(this.playerModel);if(this.lionModel)this.scene.remove(this.lionModel);this.playerModel=null;this.lionModel=null;this.boss=null;this.level=null}
+ clear(){this.world.clear();this.particles.clear();if(this.decor){this.decor.clear();this.decor=null;}for(const p of this.projectiles)this.scene.remove(p.mesh);this.projectiles=[];if(this.playerModel)this.scene.remove(this.playerModel);if(this.lionModel)this.scene.remove(this.lionModel);this.playerModel=null;this.lionModel=null;this.boss=null;this.level=null}
  startLevel(index,newRun=false){
   if(index>=LEVELS.length){this.win();return}
   this.clear();this.state.mode='play';this.state.level=index;
   if(newRun){this.state.score=0;this.state.coins=0;this.state.lives=3;this.state.checkpoint=null;this.state.save.checkpoint=null}
   this.level=buildLevel(index);this.scene.background=new THREE.Color(this.level.world.sky);
-  this.scene.fog=new THREE.Fog(this.level.world.fog,35,115);
+  this.scene.fog=new THREE.Fog(this.level.world.fog,35,115);this.decor=new Decor(this.scene,this.level.world);
   const cp=this.state.checkpoint&&this.state.checkpoint.level===index?this.state.checkpoint:null;
-  this.player={x:cp?.x??0,y:cp?.y??1,vx:0,vy:0,facing:1,grounded:false,jumps:0,inv:0,attack:0,dash:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0};
+  this.player={x:cp?.x??0,y:cp?.y??1,vx:0,vy:0,facing:1,grounded:false,jumps:0,inv:0,attack:0,dash:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0,coyote:0,jumpBuffer:0,flash:0};
   this.playerModel=makePlayer();this.scene.add(this.playerModel);this.lionModel=makeLion();this.lionModel.visible=false;this.scene.add(this.lionModel);
   this.world.mount(this.level);if(this.level.boss)this.spawnBoss();
   this.state.quest={kind:this.level.cfg.questKind,target:this.level.cfg.questTarget,progress:0,done:false};
@@ -49,8 +50,13 @@ export class Game{
  togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V5.0')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
-  if(p.grounded){p.vy=GAME.jumpSpeed;p.grounded=false;p.jumps=1;p.supportPlatform=null;this.state.save.stats.jumps++;this.audio.jump()}
-  else if(this.state.save.unlocks.doubleJump&&p.jumps<2){p.vy=GAME.jumpSpeed*.9;p.jumps++;this.audio.jump()}
+  if(p.grounded||p.coyote>0){
+   p.vy=GAME.jumpSpeed;p.grounded=false;p.coyote=0;p.jumps=1;p.supportPlatform=null;
+   this.state.save.stats.jumps++;this.audio.jump();this.particles.burst(this.playerModel.position,0xffffff,6,3);
+  }else if(this.state.save.unlocks.doubleJump&&p.jumps<2){
+   p.vy=GAME.jumpSpeed*.9;p.jumps++;this.audio.jump();
+   this.particles.burst(this.playerModel.position,0x7de3ff,8,4);
+  }
  }
  dash(){
   const p=this.player;if(!this.state.save.unlocks.dash||p.dash>0)return;
@@ -58,7 +64,7 @@ export class Game{
   this.state.save.stats.dashes++;this.audio.dash();this.particles.burst(this.playerModel.position,0xffd43b,16,7)
  }
  attack(){
-  const p=this.player;if(p.attack>0)return;p.attack=.24;this.audio.hit();
+  const p=this.player;if(p.attack>0)return;p.attack=.24;p.flash=.12;this.audio.hit();this.follow.kick(.035);
   const dir=p.vx?Math.sign(p.vx):p.facing,px=p.x+dir*1.05;
   for(const e of this.world.enemies){if(!e.alive)continue;const dx=Math.abs(e.mesh.position.x-px),dy=Math.abs(e.mesh.position.y-p.y);if(dx<1.35&&dy<1.25)this.damageEnemy(e,1)}
   if(this.boss){const dx=Math.abs(this.boss.mesh.position.x-px),dy=Math.abs(this.boss.mesh.position.y-p.y);if(dx<1.8&&dy<1.6)this.damageBoss(1)}
@@ -120,13 +126,30 @@ export class Game{
  }
  update(dt){
   if(this.state.mode!=='play')return;
-  const p=this.player;this.input.sync();if(this.input.jumpPressed)this.jump();if(this.input.actionPressed)this.attack();if(this.input.dashPressed)this.dash();
-  this.world.update(dt);p.vy+=GAME.gravity*dt;p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);
+  const p=this.player;this.input.sync();
+  if(this.input.jumpPressed)p.jumpBuffer=GAME.jumpBuffer;
+  if(p.jumpBuffer>0){this.jump();p.jumpBuffer=Math.max(0,p.jumpBuffer-dt)}
+  if(this.input.actionPressed)this.attack();if(this.input.dashPressed)this.dash();
+  this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);p.vy+=GAME.gravity*dt;p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.coyote=Math.max(0,p.coyote-dt);p.flash=Math.max(0,p.flash-dt);
   if(p.dash<=0)p.vx=(this.input.right?GAME.playerSpeed:this.input.left?-GAME.playerSpeed:0)*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
-  resolvePlayer(p,this.level.platforms,dt);if(p.y<-3)this.hurt(true);
-  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing<0?Math.PI:0;this.playerModel.visible=p.inv<=0||Math.floor(p.inv*14)%2===0;
+  const wasGrounded=p.grounded;
+  resolvePlayer(p,this.level.platforms,dt);
+  if(wasGrounded&&!p.grounded&&p.vy<=0)p.coyote=GAME.coyoteTime;
+  if(p.y<-3)this.hurt(true);
+  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing<0?Math.PI:0;
+  const jumpStretch=p.grounded?1:1.05;
+  const attackSquash=p.attack>0?.92:1;
+  this.playerModel.scale.set(attackSquash,1/jumpStretch,jumpStretch);
+  this.playerModel.visible=p.inv<=0||Math.floor(p.inv*14)%2===0;
   this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);
-  this.collect();this.updateEnemies(dt);this.updateBoss(dt);this.updateProjectiles(dt);this.particles.update(dt);
+  this.collect();
+  if(p.star>0){
+   p.star=Math.max(0,p.star-dt);
+   if(Math.random()<dt*9)this.particles.burst(this.playerModel.position,0xffffff,2,3);
+   for(const e of this.world.enemies)if(e.alive&&Math.abs(e.mesh.position.x-p.x)<1.25&&Math.abs(e.mesh.position.y-p.y)<1.3)this.damageEnemy(e,e.hp);
+   if(this.boss&&Math.abs(this.boss.mesh.position.x-p.x)<1.45)this.damageBoss(1);
+  }
+  this.updateEnemies(dt);this.updateBoss(dt);this.updateProjectiles(dt);this.particles.update(dt);
   this.state.comboTimer=Math.max(0,this.state.comboTimer-dt);if(!this.state.comboTimer){this.state.combo=0;this.ui.setCombo(0)}
   const q=this.state.quest;q.done=q.kind==='heart'?this.state.lives>=1:q.progress>=q.target;
   this.ui.setObjective(`${this.level.cfg.quest} · ${q.kind==='heart'?this.state.lives+' ❤️':Math.min(q.progress,q.target)+'/'+q.target}${this.state.bossDefeated?' · 👑':''}`);

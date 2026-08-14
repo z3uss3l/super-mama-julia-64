@@ -34,10 +34,10 @@ export const LEVELS=WORLDS.flatMap((w,wi)=>Array.from({length:3},(_,li)=>({
 })));
 
 export const ENEMY_STATS={
- slime:{hp:1,speed:1.7,value:100,aggro:7,contactRange:.62,contactHeight:.9},
- bat:{hp:1,speed:3.2,value:160,aggro:9,contactRange:.7,contactHeight:1.15},
- runner:{hp:2,speed:4.4,value:220,aggro:9.5,contactRange:.7,contactHeight:1},
- turret:{hp:3,speed:0,value:300,aggro:11,fireRate:.8,contactRange:.55,contactHeight:.9}
+ slime:{hp:1,speed:1.7,value:100,aggro:7,contactRange:.55,contactHeight:.78},
+ bat:{hp:1,speed:3.2,value:160,aggro:9,contactRange:.64,contactHeight:1.0},
+ runner:{hp:2,speed:4.4,value:220,aggro:9.5,contactRange:.64,contactHeight:.9},
+ turret:{hp:3,speed:0,value:300,aggro:11,fireRate:.8,contactRange:.52,contactHeight:.82}
 };
 
 export const BOSS_STATS={
