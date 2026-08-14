@@ -1,4 +1,4 @@
-# Super Mama Julia 64 — V5.4.2
+# Super Mama Julia 64 — V5.4.2-phone
 
 ## Start
 
@@ -14,7 +14,7 @@ npm run build
 npm run preview
 ```
 
-## V5.4.2 Fix
+## V5.4.2-phone Fix
 
 - Startscreen uses the correct `#screen` selector.
 - Explicit z-index layers for canvas, HUD, touch controls and start/pause screen.
