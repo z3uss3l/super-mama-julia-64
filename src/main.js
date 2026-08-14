@@ -8,4 +8,4 @@ const fatal=e=>{
 };
 addEventListener('error',e=>fatal(e.error||e.message));
 addEventListener('unhandledrejection',e=>fatal(e.reason));
-try{window.juliaGame=new Game(new UI())}catch(e){fatal(e)}
+try{window.juliaGame=new Game(new UI());window.__juliaReady=true;window.__juliaBootReady?.()}catch(e){window.__juliaBootError?.(e);fatal(e)}
