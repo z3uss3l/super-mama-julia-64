@@ -1,575 +1,88 @@
 import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
-import { ENEMY_STATS } from './config.js';
 
-const PLAYER_DEFAULTS = {
-  width: 0.75,
-  height: 1.7,
-  depth: 0.75,
-  maxSpeed: 8.6,
-  dashSpeed: 20,
-  accel: 42,
-  airAccel: 27,
-  friction: 34,
-  airFriction: 4.5,
-  gravity: 27,
-  terminalVelocity: -24,
-  coyoteTime: 0.11,
-  jumpBufferTime: 0.12
-};
+const M=(c,rough=.82)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,metalness:.04});
+const S=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:.45,metalness:.12});
+export function meshBox(w,h,d,mat){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat)}
+function limb(w,h,d,mat){const m=meshBox(w,h,d,mat);m.geometry.translate(0,-h/2,0);return m}
 
-export function makePlayer() {
-  const group = new THREE.Group();
-  group.name = 'Julia';
-
-  /*
-   * Physics dimensions are deliberately aligned with the visible
-   * character envelope. The collision origin is the player's feet.
-   */
-  const bodyGeo = new THREE.BoxGeometry(0.75, 1.4, 0.75);
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0xff4be1,
-    roughness: 0.3,
-    metalness: 0.02
-  });
-
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.name = 'body';
-  body.position.y = 0.70;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
-
-  const headGeo = new THREE.SphereGeometry(0.40, 20, 16);
-  const headMat = new THREE.MeshStandardMaterial({
-    color: 0xffe0bd,
-    roughness: 0.5,
-    metalness: 0
-  });
-
-  const head = new THREE.Mesh(headGeo, headMat);
-  head.name = 'head';
-  head.position.y = 1.50;
-  head.castShadow = true;
-  head.receiveShadow = true;
-  group.add(head);
-
-  /*
-   * Small feet make the running animation readable without changing
-   * the actual collision envelope.
-   */
-  const footGeo = new THREE.BoxGeometry(0.28, 0.18, 0.38);
-  const footMat = new THREE.MeshStandardMaterial({
-    color: 0x7c3aed,
-    roughness: 0.45
-  });
-
-  const footLeft = new THREE.Mesh(footGeo, footMat);
-  footLeft.name = 'footLeft';
-  footLeft.position.set(-0.22, 0.09, 0);
-  footLeft.castShadow = true;
-  group.add(footLeft);
-
-  const footRight = new THREE.Mesh(footGeo, footMat);
-  footRight.name = 'footRight';
-  footRight.position.set(0.22, 0.09, 0);
-  footRight.castShadow = true;
-  group.add(footRight);
-
-  /*
-   * State used by animation. Keeping it on the player avoids using
-   * Date.now() and makes animation deterministic with dt.
-   */
-  const player = {
-    mesh: group,
-
-    width: PLAYER_DEFAULTS.width,
-    height: PLAYER_DEFAULTS.height,
-    depth: PLAYER_DEFAULTS.depth,
-
-    x: 0,
-    y: 0,
-    z: 0,
-
-    vx: 0,
-    vy: 0,
-
-    grounded: false,
-    supportPlatform: null,
-
-    facing: 1,
-    inputAxis: 0,
-
-    maxSpeed: PLAYER_DEFAULTS.maxSpeed,
-    dashSpeed: PLAYER_DEFAULTS.dashSpeed,
-
-    accel: PLAYER_DEFAULTS.accel,
-    airAccel: PLAYER_DEFAULTS.airAccel,
-
-    friction: PLAYER_DEFAULTS.friction,
-    airFriction: PLAYER_DEFAULTS.airFriction,
-
-    gravity: PLAYER_DEFAULTS.gravity,
-    terminalVelocity: PLAYER_DEFAULTS.terminalVelocity,
-
-    coyoteTime: PLAYER_DEFAULTS.coyoteTime,
-    coyoteTimer: 0,
-
-    jumpBufferTime: PLAYER_DEFAULTS.jumpBufferTime,
-    jumpBufferTimer: 0,
-
-    jumps: 0,
-
-    dash: 0,
-    dashCooldown: 0,
-    dashDirection: 1,
-
-    justLanded: false,
-    justJumped: false,
-
-    animationTime: 0,
-    animationState: 'idle'
-  };
-
-  /*
-   * Keep render transform synchronized with physics coordinates.
-   */
-  syncPlayerMesh(player);
-
-  return player;
+export function makePlayer(){
+ const g=new THREE.Group();
+ const parts={};
+ parts.body=meshBox(.58,.78,.45,M(0x376bd8));parts.body.position.y=.64;g.add(parts.body);
+ parts.apron=meshBox(.64,.42,.47,M(0xffffff));parts.apron.position.set(0,.53,.25);g.add(parts.apron);
+ parts.head=new THREE.Mesh(new THREE.SphereGeometry(.37,18,14),M(0xf6c7a5));parts.head.position.y=1.25;g.add(parts.head);
+ parts.hair=new THREE.Mesh(new THREE.SphereGeometry(.43,18,14),M(0xf4c430));parts.hair.scale.set(1,.96,1.08);parts.hair.position.y=1.34;g.add(parts.hair);
+ parts.bun=new THREE.Mesh(new THREE.SphereGeometry(.18,14,10),M(0xf4c430));parts.bun.position.set(-.27,1.55,0);g.add(parts.bun);
+ parts.eyeL=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),S(0x15151a));parts.eyeL.position.set(-.12,1.24,.36);g.add(parts.eyeL);
+ parts.eyeR=parts.eyeL.clone();parts.eyeR.position.x=.12;g.add(parts.eyeR);
+ parts.armL=limb(.13,.48,.14,M(0xf6c7a5));parts.armL.position.set(-.39,.73,0);g.add(parts.armL);
+ parts.armR=limb(.13,.48,.14,M(0xf6c7a5));parts.armR.position.set(.39,.73,0);g.add(parts.armR);
+ parts.legL=limb(.17,.42,.18,M(0x29202b));parts.legL.position.set(-.18,.37,.05);g.add(parts.legL);
+ parts.legR=limb(.17,.42,.18,M(0x29202b));parts.legR.position.set(.18,.37,.05);g.add(parts.legR);
+ parts.scarf=meshBox(.62,.08,.5,M(0xff4b7d));parts.scarf.position.set(0,.91,.27);g.add(parts.scarf);
+ g.userData={kind:'player',parts,height:1.72,t:0,lastGrounded:false,land:0};return g;
 }
 
-function syncPlayerMesh(player) {
-  if (!player?.mesh) return;
-
-  player.mesh.position.set(
-    player.x ?? 0,
-    player.y ?? 0,
-    player.z ?? 0
-  );
+export function makeLion(){
+ const g=new THREE.Group(),parts={};
+ parts.mane=new THREE.Mesh(new THREE.SphereGeometry(.68,18,14),S(0xff6500));parts.mane.scale.set(1,.78,.8);parts.mane.position.y=.72;g.add(parts.mane);
+ parts.body=meshBox(1.08,.62,.72,M(0xe88a18));parts.body.position.y=.62;g.add(parts.body);
+ parts.head=new THREE.Mesh(new THREE.SphereGeometry(.5,16,12),M(0xe88a18));parts.head.position.set(.45,.98,0);g.add(parts.head);
+ parts.tail=limb(.10,.7,.10,M(0xe88a18));parts.tail.position.set(-.55,.7,0);parts.tail.rotation.z=-.8;g.add(parts.tail);
+ g.userData={kind:'lion',parts,t:0};return g;
 }
 
-export function makeEnemy(type, x, y, z) {
-  const stats =
-    ENEMY_STATS[type] ||
-    ENEMY_STATS.slime;
-
-  const group = new THREE.Group();
-  group.name = `Enemy_${type}`;
-
-  let mesh;
-
-  if (type === 'bat') {
-    const geo = new THREE.ConeGeometry(
-      0.5,
-      1,
-      8
-    );
-
-    const mat =
-      new THREE.MeshStandardMaterial({
-        color: 0x9333ea,
-        roughness: 0.4
-      });
-
-    mesh = new THREE.Mesh(
-      geo,
-      mat
-    );
-
-    mesh.rotation.x =
-      Math.PI / 2;
-  } else {
-    const geo =
-      new THREE.BoxGeometry(
-        0.9,
-        stats.contactHeight || 0.9,
-        0.9
-      );
-
-    const mat =
-      new THREE.MeshStandardMaterial({
-        color: 0x10b981,
-        roughness: 0.5
-      });
-
-    mesh = new THREE.Mesh(
-      geo,
-      mat
-    );
+export function makeEnemy(type,boss=false){
+ const g=new THREE.Group(),colors={slime:0x5bc34b,bat:0xff3b43,runner:0x8b5cf6,turret:0xffa21c};
+ const mat=M(colors[type]||0xffffff),parts={};
+ if(type==='turret'){
+  parts.body=meshBox(.7,.9,.7,mat);g.add(parts.body);
+  parts.eye=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),S(0xfff3a1));parts.eye.position.set(0,.15,.38);g.add(parts.eye);
+ }else{
+  parts.body=new THREE.Mesh(new THREE.SphereGeometry(boss?.72:.43,16,12),mat);parts.body.scale.y=.8;g.add(parts.body);
+  if(type==='bat'){
+   parts.wingL=meshBox(.55,.1,.3,mat);parts.wingL.position.z=-.45;g.add(parts.wingL);
+   parts.wingR=meshBox(.55,.1,.3,mat);parts.wingR.position.z=.45;g.add(parts.wingR);
   }
-
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-
-  group.add(mesh);
-  group.position.set(
-    x,
-    y,
-    z
-  );
-
-  return {
-    type,
-    mesh,
-
-    x,
-    y,
-    z,
-
-    vx: 0,
-    vy: 0,
-
-    hp: stats.hp,
-    stats,
-
-    patrolTimer: 0,
-    animationTime: 0,
-
-    facing: 1
-  };
+  if(type==='runner'){
+   parts.eyeL=new THREE.Mesh(new THREE.SphereGeometry(.055,8,6),S(0xffffff));parts.eyeL.position.set(-.16,.08,.37);g.add(parts.eyeL);
+   parts.eyeR=parts.eyeL.clone();parts.eyeR.position.x=.16;g.add(parts.eyeR);
+  }
+ }
+ if(boss){
+  parts.ring=new THREE.Mesh(new THREE.TorusGeometry(.9,.06,10,28),S(0xffd43b));parts.ring.rotation.x=Math.PI/2;parts.ring.position.y=.1;g.add(parts.ring);
+  parts.crown=new THREE.Mesh(new THREE.ConeGeometry(.28,.5,5),S(0xffd43b));parts.crown.position.y=1.05;g.add(parts.crown);
+ }
+ g.userData={kind:type,boss,parts,t:Math.random()*6};return g;
 }
 
-export function updateEnemies(
-  enemies,
-  player,
-  platforms,
-  dt
-) {
-  if (!Array.isArray(enemies)) {
-    return null;
-  }
-
-  for (const en of enemies) {
-    if (!en || !en.mesh) {
-      continue;
-    }
-
-    const stats =
-      en.stats ||
-      ENEMY_STATS.slime;
-
-    const dx =
-      (player?.x ?? 0) -
-      (en.x ?? 0);
-
-    const dz =
-      (player?.z ?? 0) -
-      (en.z ?? 0);
-
-    const distToPlayer =
-      Math.hypot(dx, dz);
-
-    const aggro =
-      stats.aggro ?? 8;
-
-    if (distToPlayer < aggro) {
-      const dir =
-        Math.sign(dx);
-
-      if (dir !== 0) {
-        en.vx =
-          dir *
-          (stats.speed ?? 2);
-        en.facing = dir;
-      }
-    } else {
-      en.patrolTimer += dt;
-
-      if (en.patrolTimer > 3) {
-        en.vx =
-          -(en.vx || stats.speed || 2);
-
-        en.facing =
-          Math.sign(en.vx) || 1;
-
-        en.patrolTimer = 0;
-      }
-    }
-
-    en.x +=
-      (en.vx ?? 0) *
-      dt;
-
-    en.mesh.position.set(
-      en.x,
-      en.y,
-      en.z
-    );
-
-    en.mesh.rotation.y =
-      en.facing > 0
-        ? 0
-        : Math.PI;
-
-    en.animationTime += dt;
-
-    /*
-     * Small vertical movement for flying enemies.
-     */
-    if (en.type === 'bat') {
-      en.mesh.position.y =
-        en.y +
-        Math.sin(
-          en.animationTime * 8
-        ) * 0.12;
-    }
-
-    /*
-     * Player hit signal.
-     * The caller decides how lives/damage are handled.
-     */
-    const hitDist =
-      Math.hypot(
-        (player?.x ?? 0) - en.x,
-        (player?.y ?? 0) - en.y,
-        (player?.z ?? 0) - en.z
-      );
-
-    if (hitDist < 1.1) {
-      return en;
-    }
-  }
-
-  return null;
-}
-
-export function animateCharacter(
-  player,
-  state,
-  dt
-) {
-  if (
-    !player ||
-    !player.mesh
-  ) {
-    return;
-  }
-
-  const safeDt =
-    Math.max(
-      0,
-      Math.min(
-        Number.isFinite(dt)
-          ? dt
-          : 0,
-        0.05
-      )
-    );
-
-  player.animationTime =
-    (player.animationTime || 0) +
-    safeDt;
-
-  player.animationState =
-    state || 'idle';
-
-  /*
-   * Render transform.
-   *
-   * Physics owns x/y/z. entities.js only mirrors them.
-   */
-  syncPlayerMesh(player);
-
-  /*
-   * Facing follows actual velocity first, then input.
-   */
-  if (
-    Math.abs(player.vx ?? 0) >
-    0.1
-  ) {
-    player.facing =
-      Math.sign(player.vx);
-  } else if (
-    Math.abs(player.inputAxis ?? 0) >
-    0.01
-  ) {
-    player.facing =
-      Math.sign(player.inputAxis);
-  }
-
-  /*
-   * The character model faces +X by default.
-   */
-  player.mesh.rotation.y =
-    player.facing > 0
-      ? Math.PI / 2
-      : -Math.PI / 2;
-
-  const body =
-    player.mesh.children[0];
-
-  const head =
-    player.mesh.children[1];
-
-  const footLeft =
-    player.mesh.children[2];
-
-  const footRight =
-    player.mesh.children[3];
-
-  /*
-   * Run animation.
-   *
-   * Frequency is based on actual horizontal speed rather than
-   * wall-clock time, so slow movement looks slower.
-   */
-  const speed =
-    Math.abs(player.vx ?? 0);
-
-  const speedFactor =
-    Math.min(
-      1.4,
-      Math.max(
-        0.35,
-        speed /
-          Math.max(
-            0.001,
-            player.maxSpeed || 8.6
-          )
-      )
-    );
-
-  const runFrequency =
-    7.5 *
-    speedFactor;
-
-  const phase =
-    player.animationTime *
-    runFrequency;
-
-  if (state === 'run') {
-    const stride =
-      Math.sin(phase);
-
-    const bounce =
-      Math.abs(
-        Math.sin(phase)
-      ) * 0.075;
-
-    if (body) {
-      body.position.y =
-        0.70 + bounce;
-
-      body.rotation.z =
-        stride * 0.035;
-    }
-
-    if (head) {
-      head.position.y =
-        1.50 + bounce * 0.65;
-
-      head.rotation.z =
-        -stride * 0.025;
-    }
-
-    if (footLeft) {
-      footLeft.position.y =
-        0.09 +
-        Math.max(
-          0,
-          stride
-        ) * 0.07;
-
-      footLeft.rotation.x =
-        stride * 0.22;
-    }
-
-    if (footRight) {
-      footRight.position.y =
-        0.09 +
-        Math.max(
-          0,
-          -stride
-        ) * 0.07;
-
-      footRight.rotation.x =
-        -stride * 0.22;
-    }
-
-    return;
-  }
-
-  /*
-   * Jump / fall.
-   */
-  if (
-    state === 'jump' ||
-    state === 'fall'
-  ) {
-    const airborneBob =
-      Math.sin(
-        player.animationTime * 5
-      ) * 0.025;
-
-    if (body) {
-      body.position.y =
-        0.70 + airborneBob;
-
-      body.rotation.z = 0;
-    }
-
-    if (head) {
-      head.position.y =
-        1.50 + airborneBob;
-      head.rotation.z = 0;
-    }
-
-    if (footLeft) {
-      footLeft.position.y = 0.09;
-      footLeft.rotation.x =
-        state === 'jump'
-          ? -0.18
-          : 0.12;
-    }
-
-    if (footRight) {
-      footRight.position.y = 0.09;
-      footRight.rotation.x =
-        state === 'jump'
-          ? 0.18
-          : -0.12;
-    }
-
-    return;
-  }
-
-  /*
-   * Landing / idle.
-   *
-   * Use a short procedural settling motion instead of Date.now().
-   */
-  const idle =
-    Math.sin(
-      player.animationTime * 2.2
-    );
-
-  if (body) {
-    body.position.y =
-      0.70 +
-      idle * 0.012;
-
-    body.rotation.z =
-      idle * 0.008;
-  }
-
-  if (head) {
-    head.position.y =
-      1.50 +
-      idle * 0.008;
-
-    head.rotation.z =
-      -idle * 0.006;
-  }
-
-  if (footLeft) {
-    footLeft.position.y =
-      0.09;
-    footLeft.rotation.x = 0;
-  }
-
-  if (footRight) {
-    footRight.position.y =
-      0.09;
-    footRight.rotation.x = 0;
-  }
+export function animateCharacter(model,dt,state={}){
+ if(!model?.userData?.parts)return;
+ const u=model.userData,p=u.parts;u.t+=dt;
+ const speed=Math.abs(state.vx||0),moving=speed>.35,air=!state.grounded;
+ const cycle=u.t*(moving?9+speed*.45:3);
+ if(u.kind==='player'){
+  const swing=moving?Math.sin(cycle)*.48:Math.sin(u.t*2)*.025;
+  p.legL.rotation.x=swing;p.legR.rotation.x=-swing;p.armL.rotation.x=-swing*.65;p.armR.rotation.x=swing*.65;
+  const bob=air?Math.sin(u.t*10)*.025:Math.abs(Math.sin(cycle))*.035;
+  const lean=moving?THREE.MathUtils.clamp((state.vx||0)*-.018,-.14,.14):0;
+  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,lean+(state.attack?-.12:0),.22);
+  model.position.y+=0;
+  
+  p.head.rotation.z=THREE.MathUtils.lerp(p.head.rotation.z,state.facing<0?.04:-.04,.08);
+  p.scarf.rotation.z=Math.sin(u.t*12)*.08+(state.vx?-.08*state.facing:0);
+  p.bun.rotation.z=Math.sin(u.t*8)*.04;
+  model.userData.animBob=bob;model.position.y+=bob*.12;
+ }else if(u.kind==='lion'){
+  const swing=Math.sin(cycle)*.25;p.mane.rotation.z=swing*.25;p.tail.rotation.z=-.8+Math.sin(u.t*6)*.22;p.body.rotation.z=Math.sin(u.t*4)*.025;
+ }else if(u.kind==='bat'){
+  const flap=Math.sin(u.t*14)*.55;p.wingL.rotation.x=flap;p.wingR.rotation.x=-flap;p.body.rotation.z=Math.sin(u.t*7)*.08;
+ }else if(u.kind==='slime'){
+  const squish=1+Math.sin(u.t*8)*.07;p.body.scale.y=.8/squish;p.body.scale.x=squish;p.body.scale.z=squish;
+ }else if(u.kind==='runner'){
+  p.body.rotation.z=Math.sin(u.t*10)*.06;
+  if(p.ring)p.ring.rotation.z+=dt*1.8;
+ }else if(u.kind==='turret'){
+  p.body.rotation.y+=dt*.7;p.eye.scale.setScalar(1+Math.sin(u.t*7)*.12);
+ }
 }

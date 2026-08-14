@@ -1,105 +1,16 @@
 import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
-
-export class FollowCamera {
-  constructor(camera) {
-    this.camera = camera;
-
-    this.offset = new THREE.Vector3(0, 3.8, 11.5);
-    this.targetOffset = new THREE.Vector3(0, 1.2, 0);
-
-    this.smoothSpeed = 6.5;
-    this.lookSmooth = 8.0;
-
-    this.currentPosition = new THREE.Vector3();
-    this.currentTarget = new THREE.Vector3();
-
-    this.initialized = false;
-  }
-
-  reset(player) {
-    if (!player || !this.camera) return;
-
-    const px = player.x ?? 0;
-    const py = player.y ?? 0;
-    const pz = player.z ?? 0;
-
-    const facing = player.facing ?? 1;
-
-    const lookAheadX = facing * 1.8;
-
-    this.currentPosition.set(
-      px + this.offset.x + lookAheadX * 0.4,
-      Math.max(2.2, py + this.offset.y),
-      pz + this.offset.z
-    );
-
-    this.currentTarget.set(
-      px + lookAheadX,
-      py + this.targetOffset.y,
-      pz + this.targetOffset.z
-    );
-
-    this.camera.position.copy(this.currentPosition);
-    this.camera.lookAt(this.currentTarget);
-
-    this.initialized = true;
-  }
-
-  update(player, dt) {
-    if (!player || !this.camera) return;
-
-    const safeDt = Math.max(
-      0,
-      Math.min(Number.isFinite(dt) ? dt : 0, 0.05)
-    );
-
-    const px = player.x ?? 0;
-    const py = player.y ?? 0;
-    const pz = player.z ?? 0;
-    const facing = player.facing ?? 1;
-
-    const lookAheadX = facing * 1.8;
-
-    const desiredPosition = new THREE.Vector3(
-      px + this.offset.x + lookAheadX * 0.4,
-      Math.max(2.2, py + this.offset.y),
-      pz + this.offset.z
-    );
-
-    const desiredTarget = new THREE.Vector3(
-      px + lookAheadX,
-      py + this.targetOffset.y,
-      pz + this.targetOffset.z
-    );
-
-    if (!this.initialized) {
-      this.currentPosition.copy(desiredPosition);
-      this.currentTarget.copy(desiredTarget);
-      this.initialized = true;
-    } else {
-      const positionLerp =
-        1 - Math.exp(-this.smoothSpeed * safeDt);
-
-      const targetLerp =
-        1 - Math.exp(-this.lookSmooth * safeDt);
-
-      this.currentPosition.lerp(
-        desiredPosition,
-        positionLerp
-      );
-
-      this.currentTarget.lerp(
-        desiredTarget,
-        targetLerp
-      );
-    }
-
-    this.camera.position.copy(
-      this.currentPosition
-    );
-
-    this.camera.lookAt(
-      this.currentTarget
-    );
-  }
+export class FollowCamera{
+ constructor(camera){this.camera=camera;this.target=new THREE.Vector3();this.desired=new THREE.Vector3();this.shake=0;this.lookAhead=0;this.zoom=0}
+ resize(w,h){this.camera.aspect=w/h;this.camera.updateProjectionMatrix()}
+ kick(amount=.08){this.shake=Math.max(this.shake,amount)}
+ follow(x,y,dt,vx=0,vy=0){
+  const lead=THREE.MathUtils.clamp(vx*.22,-2.2,2.2);
+  const vertical=THREE.MathUtils.clamp(vy*.06,-.7,.7);
+  this.lookAhead += (lead-this.lookAhead)*(1-Math.exp(-5*dt));
+  this.desired.set(x+4.5+this.lookAhead,Math.max(3.8,y+3.5+vertical),12.5);
+  this.camera.position.lerp(this.desired,1-Math.pow(.0008,dt));
+  const s=this.shake>0?(Math.random()-.5)*this.shake:0;this.shake=Math.max(0,this.shake-dt*.7);
+  this.target.set(x+3.2+this.lookAhead*.35,y+.8+vertical*.2,0);
+  this.camera.lookAt(this.target.x+s,this.target.y+s,0);
+ }
 }
