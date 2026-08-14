@@ -1,35 +1,46 @@
-# Super Mama Julia 64 — Reborn
+# Super Mama Julia 64 — V3 modular
 
-A self-contained browser 3D platform game built with vanilla Three.js and DOM HUD.
+Modulare Three.js-Browsergame-Basis.
 
-## Current build
+## Start
 
-`julia.html` is the main playable build. `index.html` mirrors it for static hosting / GitHub Pages.
+**Nicht per `file://` öffnen.** Das Projekt verwendet ES-Module.
 
-### Gameplay
+### Ohne Installation
 
-- 12 worlds with distinct environments and progression
-- 3D side-scrolling platforming
-- Julia / Löwin transformation
-- double jump and dash unlocks
-- melee attacks and throwable rocks
-- coins, crystals, hearts, keys, stars, shields and portals
-- combo scoring and level-time bonuses
-- checkpoints and persistent local save
-- multiple enemy archetypes including runners, bats, turrets and shadows
-- multi-phase bosses with escalating projectile patterns
-- mobile touch controls and keyboard controls
-- procedural visual decoration and lightweight WebAudio effects
-- pause, continue, reset-save and completion screens
+```bash
+python3 -m http.server 8080
+```
 
-## Legacy
+Danach `http://localhost:8080/` öffnen.
 
-The original working prototype and the original broken `julia.html` are retained as legacy references. They are not the production entry point.
+### Mit Vite
 
-## Run locally
+```bash
+npm install
+npm run dev
+```
 
-Serve the directory with any static HTTP server and open `index.html` or `julia.html`. The game loads Three.js from the jsDelivr CDN.
+## Architektur
 
-## GitHub Pages
+- `src/game.js` — Game Loop und Orchestrierung
+- `src/world.js` — Weltobjekte
+- `src/levels.js` — Levelgenerator
+- `src/entities.js` — Spielfiguren/Gegner
+- `src/physics.js` — Bewegung/Kollision
+- `src/progression.js` — Items und Freischaltungen
+- `src/state.js` — Savegame
+- `src/input.js` — Keyboard/Touch
+- `src/ui.js` — HUD/Menüs
+- `src/audio.js` — WebAudio
+- `src/particles.js` — Partikeleffekte
+- `src/camera.js` — Follow Camera
 
-The repository can be published directly as a static site. No build step is required.
+`julia.html` und `hulia.html` sind Kompatibilitäts-Einstiegspunkte und leiten auf `index.html` weiter.
+
+## V3.1 Fixes
+
+- WorldRuntime besitzt seinen eigenen Objekt-Container und entfernt nicht mehr versehentlich das Player-Modell.
+- Levelwechsel entfernt alte Projektile, Partikel, Player- und Löwin-Modelle sauber.
+- `meshBox`-Runtime-Fehler beim Levelstart beseitigt.
+- HUD-Levelanzeige korrigiert.
