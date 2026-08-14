@@ -1,4 +1,4 @@
-export const GAME={name:'Super Mama Julia 64',version:'3.3.0',saveKey:'smj64-v3',gravity:-25,playerSpeed:8,jumpSpeed:10,dashSpeed:19,maxLives:5};
+export const GAME={name:'Super Mama Julia 64',version:'3.3.2',saveKey:'smj64-v3',gravity:-25,playerSpeed:8,jumpSpeed:10,dashSpeed:19,maxLives:5};
 export const WORLDS=[
  {id:'meadow',name:'Blumenhain',sky:0x8fd3ff,ground:0x4e8b4a,accent:0xffd43b,levels:3},
  {id:'forest',name:'Zauberwald',sky:0x142b24,ground:0x315b3c,accent:0x75e06b,levels:3},
