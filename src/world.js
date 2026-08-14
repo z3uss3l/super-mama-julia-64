@@ -8,22 +8,22 @@ export class WorldRuntime{
  mount(level){
   this.clear();this.level=level;
   for(const p of level.platforms){
-   p.prevY=p.y;p.mesh=meshBox(p.w,p.h,p.d,p.mat);p.mesh.position.set(p.x,p.y,0);this.scene.add(p.mesh);this.objects.push(p.mesh);
+   p.prevY=p.y;p.mesh=meshBox(p.w,p.h,p.d,p.mat);p.mesh.position.set(p.x,p.y,0);p.mesh.castShadow=true;p.mesh.receiveShadow=true;this.scene.add(p.mesh);this.objects.push(p.mesh);
   }
   for(const h of level.hazards){
-   const m=meshBox(h.w,.12,4,new THREE.MeshBasicMaterial({color:0xff304f}));m.position.set(h.x,-.28,.04);this.scene.add(m);this.objects.push(m);h.mesh=m;
+   const m=meshBox(h.w,.12,4,new THREE.MeshStandardMaterial({color:0xff304f,emissive:0x550011,emissiveIntensity:.7}));m.position.set(h.x,-.28,.04);this.scene.add(m);this.objects.push(m);h.mesh=m;
   }
   for(const it of level.items){
    const color={coin:0xffd43b,crystal:0x45d9ff,heart:0xff3b79,star:0xffffff,key:0x8b5cf6}[it.type]||0xffffff;
    const geo=it.type==='coin'?new THREE.TorusGeometry(.19,.065,8,14):new THREE.OctahedronGeometry(.22);
-   const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color}));m.position.set(it.x,it.y,it.z);this.scene.add(m);this.objects.push(m);
+   const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.45,metalness:.08,emissive:color,emissiveIntensity:it.type==='star'?.35:0.04}));m.castShadow=true;m.position.set(it.x,it.y,it.z);this.scene.add(m);this.objects.push(m);
    this.items.push({...it,mesh:m,alive:true});
   }
   for(const e of level.enemies){
    const m=makeEnemy(e.type);m.position.set(e.x,e.y,0);this.scene.add(m);this.objects.push(m);
    const st=ENEMY_STATS[e.type];this.enemies.push({...e,mesh:m,hp:st.hp,maxHp:st.hp,alive:true,phase:Math.random()*6,hitFlash:0,fire:0});
   }
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(.8,.12,10,24),new THREE.MeshBasicMaterial({color:level.world.accent}));
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.8,.12,12,28),new THREE.MeshStandardMaterial({color:level.world.accent,emissive:level.world.accent,emissiveIntensity:.55}));ring.castShadow=true;
   ring.position.set(level.goalX,.8,0);this.scene.add(ring);this.objects.push(ring);this.goal=ring;
  }
  addBoss(data){

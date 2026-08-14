@@ -4,7 +4,7 @@ import {RuntimeState} from './state.js';
 import {Input} from './input.js';
 import {AudioManager} from './audio.js';
 import {Particles} from './particles.js';
-import {makePlayer,makeLion} from './entities.js';
+import {makePlayer,makeLion,animateCharacter} from './entities.js';
 import {buildLevel} from './levels.js';
 import {resolvePlayer} from './physics.js';
 import {WorldRuntime} from './world.js';
@@ -17,11 +17,15 @@ export class Game{
   this.ui=ui;this.state=new RuntimeState();this.input=new Input();this.audio=new AudioManager();
   this.scene=new THREE.Scene();this.camera=new THREE.PerspectiveCamera(58,1,.1,240);
   this.renderer=new THREE.WebGLRenderer({canvas:document.getElementById('canvas'),antialias:true,powerPreference:'high-performance'});
-  this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));this.renderer.outputColorSpace=THREE.SRGBColorSpace;
+  this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.setupLighting();
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
   this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
   this.player=null;this.playerModel=null;this.lionModel=null;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;
   this.bind();this.resize();addEventListener('resize',()=>this.resize());this.ui.setAbilities(this.state.save.unlocks);this.loop();
+ }
+ setupLighting(){
+  const hemi=new THREE.HemisphereLight(0xffffff,0x273248,1.35);this.scene.add(hemi);
+  const key=new THREE.DirectionalLight(0xffffff,2.2);key.position.set(-8,16,12);key.castShadow=true;key.shadow.mapSize.set(1024,1024);this.scene.add(key);
  }
  bind(){
   document.getElementById('new').onclick=()=>{this.audio.init();this.state.newGame();this.startLevel(0,true)};
@@ -38,7 +42,7 @@ export class Game{
   this.level=buildLevel(index);this.scene.background=new THREE.Color(this.level.world.sky);
   this.scene.fog=new THREE.Fog(this.level.world.fog,35,115);this.decor=new Decor(this.scene,this.level.world);
   const cp=this.state.checkpoint&&this.state.checkpoint.level===index?this.state.checkpoint:null;
-  this.player={x:cp?.x??0,y:cp?.y??1,vx:0,vy:0,facing:1,grounded:false,jumps:0,inv:0,attack:0,dash:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0,coyote:0,jumpBuffer:0,flash:0};
+  this.player={x:cp?.x??0,y:cp?.y??1,vx:0,vy:0,inputAxis:0,maxSpeed:GAME.playerSpeed,accel:GAME.playerAccel,airAccel:GAME.playerAirAccel,friction:GAME.playerFriction,airFriction:GAME.playerAirFriction,facing:1,grounded:false,jumps:0,inv:0,attack:0,dash:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0,coyote:0,jumpBuffer:0,flash:0};
   this.playerModel=makePlayer();this.scene.add(this.playerModel);this.lionModel=makeLion();this.lionModel.visible=false;this.scene.add(this.lionModel);
   this.world.mount(this.level);if(this.level.boss)this.spawnBoss();
   this.state.quest={kind:this.level.cfg.questKind,target:this.level.cfg.questTarget,progress:0,done:false};
@@ -47,7 +51,7 @@ export class Game{
   this.ui.setObjective(this.level.cfg.quest);this.ui.setLevel(`${this.level.cfg.name} · ${index+1}/${LEVELS.length}`);this.audio.power();
  }
  spawnBoss(){const b=this.level.boss;this.world.addBoss(b);this.boss=this.world.boss;this.audio.boss();this.ui.showBoss(b.stats.name,b.hp,b.hp)}
- togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V5.0')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
+ togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V5.3')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
   if(p.grounded||p.coyote>0){
@@ -93,7 +97,7 @@ export class Game{
   for(const e of this.world.enemies){
    if(!e.alive)continue;e.phase+=dt;e.fire-=dt;
    const st=ENEMY_STATS[e.type],dx=p.x-e.mesh.position.x,dist=Math.abs(dx);
-   if(e.hitFlash>0){e.hitFlash-=dt;e.mesh.scale.setScalar(1.12)}else e.mesh.scale.setScalar(1);
+   if(e.hitFlash>0){e.hitFlash-=dt;e.mesh.scale.setScalar(1.12)}else e.mesh.scale.setScalar(1);animateCharacter(e.mesh,dt,{vx:e.mesh.position.x-e.x,grounded:true});
    if(e.type==='turret'){
     if(dist<st.aggro&&e.fire<=0){this.projectile(e.mesh.position.x,e.mesh.position.y,Math.sign(dx)||1,0);e.fire=1/st.fireRate}
    }else if(e.type==='bat'){
@@ -115,7 +119,7 @@ export class Game{
   const b=this.boss;b.phase+=dt;b.attackTimer-=dt;
   const dx=this.player.x-b.mesh.position.x,dist=Math.abs(dx);
   if(dist<b.stats.aggro)b.mesh.position.x+=Math.sign(dx)*b.stats.speed*dt*.55;
-  b.mesh.position.y=this.level.boss.y+Math.sin(b.phase*1.7)*.75;
+  b.mesh.position.y=this.level.boss.y+Math.sin(b.phase*1.7)*.75;animateCharacter(b.mesh,dt,{vx:dx,grounded:true});
   if(dist<b.stats.aggro&&b.attackTimer<=0){
    const phase=b.hp<=b.maxHp*.5?2:b.hp<=b.maxHp*.75?1:0;
    const n=phase===2?7:phase===1?5:3;
@@ -136,15 +140,20 @@ export class Game{
   if(p.jumpBuffer>0){this.jump();p.jumpBuffer=Math.max(0,p.jumpBuffer-dt)}
   if(this.input.actionPressed)this.attack();if(this.input.dashPressed)this.dash();
   this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);p.vy+=GAME.gravity*dt;p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.coyote=Math.max(0,p.coyote-dt);p.flash=Math.max(0,p.flash-dt);
-  if(p.dash<=0)p.vx=(this.input.right?GAME.playerSpeed:this.input.left?-GAME.playerSpeed:0)*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
+  p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.dash<=0&&p.inputAxis===0)p.inputAxis=0;if(p.vx)p.facing=Math.sign(p.vx);
   const wasGrounded=p.grounded;
-  resolvePlayer(p,this.level.platforms,dt);
+  const physics=resolvePlayer(p,this.level.platforms,dt);
+  if(physics.landed){p.land=.12;this.particles.burst(this.playerModel.position,0xffffff,5,2.2);this.follow.kick(.035)}
+  p.land=Math.max(0,(p.land||0)-dt);
   if(wasGrounded&&!p.grounded&&p.vy<=0)p.coyote=GAME.coyoteTime;
   if(p.y<-3)this.hurt(true);
   this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing<0?Math.PI:0;
   const jumpStretch=p.grounded?1:1.05;
   const attackSquash=p.attack>0?.92:1;
-  this.playerModel.scale.set(attackSquash,1/jumpStretch,jumpStretch);
+  const landSquash=p.land>0?1-.12*(p.land/.12):1;
+  this.playerModel.scale.set(attackSquash*landSquash,1/jumpStretch/landSquash,jumpStretch);
+  animateCharacter(this.playerModel,dt,p);
+  animateCharacter(this.lionModel,dt,p);
   this.playerModel.visible=p.inv<=0||Math.floor(p.inv*14)%2===0;
   this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);
   this.collect();
@@ -170,9 +179,9 @@ export class Game{
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===5)this.state.unlock('lion');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');
-  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …`,'V5.0');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
+  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …`,'V5.3');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
  }
- gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V5.0')}
- win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}`,'V5.0');this.audio.win()}
+ gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V5.3')}
+ win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}`,'V5.3');this.audio.win()}
  loop(){requestAnimationFrame(()=>this.loop());const dt=Math.min(.033,this.clock.getDelta());this.update(dt);this.renderer.render(this.scene,this.camera)}
 }
