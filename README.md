@@ -44,3 +44,7 @@ npm run dev
 - Levelwechsel entfernt alte Projektile, Partikel, Player- und Löwin-Modelle sauber.
 - `meshBox`-Runtime-Fehler beim Levelstart beseitigt.
 - HUD-Levelanzeige korrigiert.
+
+## V3.3.2 Fix
+
+- Dash velocity is no longer overwritten by the normal movement controller during the dash window.
