@@ -4,7 +4,17 @@ export class UI{
  q(s){return document.querySelector(s)}
  setStats(s){this.q('#stats').textContent=`⭐ ${s.score} · 🪙 ${s.coins} · ❤️ ${s.lives} · 🔥 ${s.combo}`;if(s.level)this.q('#level').textContent=s.level}
  setObjective(t){this.q('#objective').textContent=t}
- setAbilities(u){this.q('#abilities').textContent=[['↥','doubleJump'],['↯','dash'],['🛡','shield'],['⭐','starPower'],['🦁','lion']].map(([i,k])=>`<span class="${u[k]?'ready':'locked'}">${i}</span>`).join(' ')}
+ setAbilities(u){
+  const el=this.q('#abilities');
+  el.replaceChildren();
+  for(const [icon,key] of [['↥','doubleJump'],['↯','dash'],['🛡','shield'],['⭐','starPower'],['🦁','lion']]){
+   const span=document.createElement('span');
+   span.className=`ability ${u[key]?'ready':'locked'}`;
+   span.textContent=icon;
+   span.title=key;
+   el.appendChild(span);
+  }
+ }
  setCheckpoint(on){this.q('#checkpoint').textContent=on?'🚩 CHECKPOINT GESICHERT':'';this.q('#checkpoint').classList.toggle('show',on)}
  showBoss(name,hp,max){this.q('#boss').style.display='block';this.q('#bossName').textContent=`👹 ${name}`;this.q('#bossFill').style.width=`${Math.max(0,hp/max)*100}%`}
  hideBoss(){this.q('#boss').style.display='none'}
