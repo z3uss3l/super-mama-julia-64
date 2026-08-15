@@ -21,7 +21,7 @@ export class Game{
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
   this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
   this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;
-  this.bind();this.resize();addEventListener('resize',()=>this.resize());if(!this.state.save.unlocks.doubleJump)this.state.save.unlocks.doubleJump=true;this.ui.setAbilities(this.state.save.unlocks);this.loop();
+  this.bind();this.resize();addEventListener('resize',()=>this.resize());if(!this.state.save.unlocks.doubleJump)this.state.save.unlocks.doubleJump=true;this.state.save.unlocks.doubleJump=true;this.ui.setAbilities(this.state.save.unlocks);this.loop();
  }
  setupLighting(){
   const hemi=new THREE.HemisphereLight(0xffffff,0x273248,1.35);this.scene.add(hemi);
@@ -36,6 +36,7 @@ export class Game{
  resize(){const w=innerWidth,h=innerHeight;this.renderer.setSize(w,h,false);this.follow.resize(w,h)}
  clear(){this.world.clear();this.particles.clear();if(this.decor){this.decor.clear();this.decor=null;}for(const p of this.projectiles)this.scene.remove(p.mesh);this.projectiles=[];if(this.playerModel)this.scene.remove(this.playerModel);if(this.lionModel)this.scene.remove(this.lionModel);this.playerModel=null;this.lionModel=null;this.boss=null;this.level=null}
  startLevel(index,newRun=false){
+  this.state.save.unlocks.doubleJump=true;
   if(index>=LEVELS.length){this.win();return}
   this.clear();this.state.mode='play';this.state.level=index;
   if(newRun){this.state.score=0;this.state.coins=0;this.state.lives=3;this.state.checkpoint=null;this.state.save.checkpoint=null}
