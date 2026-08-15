@@ -54,7 +54,7 @@ export class Game{
   this.ui.setObjective(this.level.cfg.quest);this.ui.setLevel(`${this.level.cfg.name} · ${index+1}/${LEVELS.length}`);if(this.level.cfg.story?.intro)this.ui.toast(`📖 ${this.level.cfg.story.chapter}: ${this.level.cfg.story.intro}`);this.audio.power();
  }
  spawnBoss(){const b=this.level.boss;this.world.addBoss(b);this.boss=this.world.boss;this.audio.boss();this.ui.showBoss(b.stats.name,b.hp,b.hp)}
- togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V7.0.0')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
+ togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V7.0.1')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
   if(!p)return false;
@@ -398,9 +398,9 @@ export class Game{
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');
-  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …`,'V7.0.0');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
+  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …`,'V7.0.1');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
  }
- gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V7.0.0')}
- win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}`,'V7.0.0');this.audio.win()}
+ gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V7.0.1')}
+ win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}`,'V7.0.1');this.audio.win()}
  loop(){requestAnimationFrame(()=>this.loop());const dt=Math.min(.033,this.clock.getDelta());this.update(dt);this.renderer.render(this.scene,this.camera)}
 }

@@ -214,16 +214,32 @@ function step(player, platforms, dt) {
     const p = platformBounds(platform);
     if (!overlapsZ(player, platform)) continue;
 
-    const bodyBottom = player.y + 0.15;
-    const bodyTop = player.y + ph - 0.15;
-    const overlapsYBody = bodyTop > p.bottom && bodyBottom < p.top;
+      // Use the real player AABB for side collisions. The old inset
+    // body test could miss a collision when the player approached a
+    // platform at an edge or while the body was partly above it.
+    const playerBottom = player.y;
+    const playerTop = player.y + ph;
 
-    if (!overlapsYBody) continue;
+    // Standing exactly on the top surface is not a side collision.
+    const overlapsVerticalSide =
+      playerTop > p.bottom + 0.0001 &&
+      playerBottom < p.top - 0.0001;
 
-    if ((player.vx ?? 0) > 0 && previousX + pw <= p.left + 0.08 && player.x + pw >= p.left) {
+    if (!overlapsVerticalSide) continue;
+
+    const prevLeft = previousX - pw;
+    const prevRight = previousX + pw;
+    const nextLeft = player.x - pw;
+    const nextRight = player.x + pw;
+
+    if ((player.vx ?? 0) > 0 &&
+        prevRight <= p.left + 0.0001 &&
+        nextRight >= p.left) {
       player.x = p.left - pw - 0.001;
       player.vx = 0;
-    } else if ((player.vx ?? 0) < 0 && previousX - pw >= p.right - 0.08 && player.x - pw <= p.right) {
+    } else if ((player.vx ?? 0) < 0 &&
+               prevLeft >= p.right - 0.0001 &&
+               nextLeft <= p.right) {
       player.x = p.right + pw + 0.001;
       player.vx = 0;
     }
@@ -351,4 +367,41 @@ export function getMovementState(player) {
   return Math.abs(player?.vx ?? 0) > 0.15
     ? 'run'
     : 'idle';
+}
+
+
+/**
+ * Deterministic physics regression checks. These are deliberately small and
+ * dependency-free so they can run in CI without WebGL.
+ */
+
+/**
+ * Deterministic physics regression checks. These are deliberately small and
+ * dependency-free so they can run in CI without WebGL.
+ */
+export function runPhysicsRegressionTests() {
+  const platform = {x: 5, y: 0.5, z: 0, width: 2, height: 1, depth: 4};
+
+  const a = {
+    x: 3.0, y: 0.0, z: 0, width: 1, height: 1.8, depth: 1,
+    vx: 0, vy: 0, inputAxis: 1, grounded: false, maxSpeed: 8.6
+  };
+  for(let i=0;i<90;i++) resolvePlayer(a,[platform],1/60);
+  const blockedRight = a.x <= platform.x-platform.width/2-a.width/2+0.01;
+
+  const b = {
+    x: 7.0, y: 0.0, z: 0, width: 1, height: 1.8, depth: 1,
+    vx: 0, vy: 0, inputAxis: -1, grounded: false, maxSpeed: 8.6
+  };
+  for(let i=0;i<90;i++) resolvePlayer(b,[platform],1/60);
+  const blockedLeft = b.x >= platform.x+platform.width/2+b.width/2-0.01;
+
+  const c = {
+    x: 5, y: 1.0, z: 0, width: 1, height: 1.8, depth: 1,
+    vx: 0, vy: 0, inputAxis: 0, grounded: true, maxSpeed: 8.6
+  };
+  resolvePlayer(c,[platform],1/60);
+  const standingStable = Math.abs(c.x-5)<0.001;
+
+  return {blockedRight, blockedLeft, standingStable, ok:blockedRight&&blockedLeft&&standingStable};
 }
