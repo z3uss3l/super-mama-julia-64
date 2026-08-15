@@ -145,7 +145,7 @@ export class Game{
   const p=this.player;this.input.sync();
   const jumpDown=this.input.jump===true;
   const jumpEdge=this.input.jumpPressed===true || (jumpDown&&!this.jumpHeldLast);
-  if(jumpEdge)p.jumpBuffer=GAME.jumpBuffer;
+  if(jumpEdge){const jumped=this.jump();if(!jumped)p.jumpBuffer=GAME.jumpBuffer;}
   if(this.input.actionPressed)this.attack();if(this.input.dashPressed)this.dash();
   this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);
   p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
@@ -159,7 +159,7 @@ export class Game{
   if(this.input.jumpReleased===true&&p.vy>2)p.vy*=.52;
   if(p.jumpBuffer>0){
    p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
-   this.jump();
+   if(p.grounded&&this.jump())p.jumpBuffer=0;
   }
   p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.flash=Math.max(0,p.flash-dt);
   if(p.y<-3)this.hurt(true);

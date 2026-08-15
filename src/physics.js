@@ -6,7 +6,7 @@ const DEFAULTS = {
   friction: 34,
   airFriction: 4.5,
   terminalVelocity: -24,
-  landingTolerance: 0.10,
+  landingTolerance: 0.15,
   maxStep: 1 / 120,
   maxFrameDt: 1 / 20
 };
@@ -26,7 +26,7 @@ function approach(current, target, amount) {
   return target;
 }
 
-function platformBounds(platform) {
+export function platformBounds(platform) {
   const width = value(platform, 'w', value(platform, 'width', 1));
   const height = value(platform, 'h', value(platform, 'height', 0.5));
   const depth = value(platform, 'd', value(platform, 'depth', Infinity));
@@ -45,7 +45,7 @@ function platformBounds(platform) {
   };
 }
 
-function playerBounds(player, x = player.x, y = player.y, z = player.z ?? 0) {
+export function playerBounds(player, x = player.x, y = player.y, z = player.z ?? 0) {
   const width = value(player, 'width', 0.75);
   const height = value(player, 'height', 1.7);
   const depth = value(player, 'depth', 0.75);
@@ -60,13 +60,13 @@ function playerBounds(player, x = player.x, y = player.y, z = player.z ?? 0) {
   };
 }
 
-function overlapsX(player, platform, x = player.x) {
+export function overlapsX(player, platform, x = player.x) {
   const pb = playerBounds(player, x);
   const pp = platformBounds(platform);
   return pb.right > pp.left && pb.left < pp.right;
 }
 
-function overlapsZ(player, platform, z = player.z ?? 0) {
+export function overlapsZ(player, platform, z = player.z ?? 0) {
   if (!Number.isFinite(platform.d) && !Number.isFinite(platform.depth)) {
     return true;
   }
@@ -138,19 +138,16 @@ function applyDash(player) {
 
 function applyMovingPlatform(player) {
   const platform = player.supportPlatform;
+  if (!platform || !player.grounded) return;
 
-  if (
-    !platform ||
-    !player.grounded ||
-    !Number.isFinite(platform.prevY)
-  ) {
-    return;
+  if (Number.isFinite(platform.prevY)) {
+    const deltaY = platform.y - platform.prevY;
+    if (Math.abs(deltaY) > 0.000001) player.y += deltaY;
   }
 
-  const deltaY = platform.y - platform.prevY;
-
-  if (Math.abs(deltaY) > 0.000001) {
-    player.y += deltaY;
+  if (Number.isFinite(platform.prevX)) {
+    const deltaX = platform.x - platform.prevX;
+    if (Math.abs(deltaX) > 0.000001) player.x += deltaX;
   }
 }
 
@@ -191,93 +188,92 @@ function findLandingPlatform(
 
 function step(player, platforms, dt) {
   const previousY = player.y;
+  const previousX = player.x;
   const previousGrounded = player.grounded === true;
 
   player.justLanded = false;
-
   applyMovingPlatform(player);
 
-  /*
-   * Preserve coyote time independently from the Game controller.
-   * Game.js also maintains its legacy p.coyote field; keeping both
-   * paths compatible prevents a missed jump at a platform edge.
-   */
   if (previousGrounded) {
-    player.coyote = value(
-      player,
-      'coyote',
-      0.11
-    );
+    player.coyote = value(player, 'coyote', 0.11);
   } else if (Number.isFinite(player.coyote)) {
-    player.coyote = Math.max(
-      0,
-      player.coyote - dt
-    );
+    player.coyote = Math.max(0, player.coyote - dt);
   }
 
   player.grounded = false;
-
   moveAxis(player, dt);
   applyDash(player);
 
+  // Horizontal movement + solid side-wall collision.
   player.x += (player.vx ?? 0) * dt;
+  const pw = value(player, 'width', 0.75) / 2;
+  const ph = value(player, 'height', 1.7);
 
-  /*
-   * Gravity is intentionally NOT applied here.
-   * The existing Game runtime owns vertical acceleration via
-   * p.vy += GAME.gravity * dt. Applying it twice was one of the
-   * failure modes of the mixed physics versions.
-   */
+  for (const platform of platforms) {
+    if (!platform) continue;
+    const p = platformBounds(platform);
+    if (!overlapsZ(player, platform)) continue;
+
+    const bodyBottom = player.y + 0.15;
+    const bodyTop = player.y + ph - 0.15;
+    const overlapsYBody = bodyTop > p.bottom && bodyBottom < p.top;
+
+    if (!overlapsYBody) continue;
+
+    if ((player.vx ?? 0) > 0 && previousX + pw <= p.left + 0.08 && player.x + pw >= p.left) {
+      player.x = p.left - pw - 0.001;
+      player.vx = 0;
+    } else if ((player.vx ?? 0) < 0 && previousX - pw >= p.right - 0.08 && player.x - pw <= p.right) {
+      player.x = p.right + pw + 0.001;
+      player.vx = 0;
+    }
+  }
+
+  // Vertical movement. GameRuntime owns gravity and updates vy before this call.
   player.vy = Math.max(
     value(player, 'terminalVelocity', DEFAULTS.terminalVelocity),
     player.vy ?? 0
   );
 
-  const nextY =
-    player.y +
-    (player.vy ?? 0) *
-    dt;
+  const nextY = player.y + (player.vy ?? 0) * dt;
 
-  /*
-   * Only downward motion can land.
-   */
+  // Ceiling collision: prevent jumping through the underside of platforms.
+  if ((player.vy ?? 0) > 0) {
+    for (const platform of platforms) {
+      if (!platform) continue;
+      const p = platformBounds(platform);
+      if (!overlapsX(player, platform) || !overlapsZ(player, platform)) continue;
+
+      const prevHead = previousY + ph;
+      const nextHead = nextY + ph;
+      if (prevHead <= p.bottom + 0.15 && nextHead >= p.bottom - 0.05) {
+        player.y = p.bottom - ph - 0.001;
+        player.vy = 0;
+        player.supportPlatform = null;
+        return { landed: false, platform: null, grounded: false };
+      }
+    }
+  }
+
+  // Landing while descending.
   if ((player.vy ?? 0) <= 0) {
-    const landing = findLandingPlatform(
-      player,
-      platforms,
-      previousY,
-      nextY
-    );
-
+    const landing = findLandingPlatform(player, platforms, previousY, nextY);
     if (landing) {
       const p = platformBounds(landing);
-
       player.y = p.top;
       player.vy = 0;
       player.grounded = true;
       player.supportPlatform = landing;
       player.jumps = 0;
       player.coyote = 0;
-
-      player.justLanded =
-        !previousGrounded;
-
-      return {
-        landed: player.justLanded,
-        platform: landing,
-        grounded: true
-      };
+      player.justLanded = !previousGrounded;
+      return { landed: player.justLanded, platform: landing, grounded: true };
     }
   }
 
   player.y = nextY;
   player.supportPlatform = null;
-
-  return {
-    landed: false,
-    platform: null,
-    grounded: false
-  };
+  return { landed: false, platform: null, grounded: false };
 }
 
 export function resolvePlayer(

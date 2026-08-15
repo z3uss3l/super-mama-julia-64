@@ -8,7 +8,7 @@ export class WorldRuntime{
  mount(level){
   this.clear();this.level=level;
   for(const p of level.platforms){
-   p.prevY=p.y;p.mesh=meshBox(p.w,p.h,p.d,p.mat);p.mesh.position.set(p.x,p.y,0);p.mesh.castShadow=true;p.mesh.receiveShadow=true;this.scene.add(p.mesh);this.objects.push(p.mesh);
+   p.prevY=p.y;p.prevX=p.x;p.mesh=meshBox(p.w,p.h,p.d,p.mat);p.mesh.position.set(p.x,p.y,0);p.mesh.castShadow=true;p.mesh.receiveShadow=true;this.scene.add(p.mesh);this.objects.push(p.mesh);
   }
   for(const h of level.hazards){
    const m=meshBox(h.w,.12,4,new THREE.MeshStandardMaterial({color:0xff304f,emissive:0x550011,emissiveIntensity:.7}));m.position.set(h.x,-.28,.04);this.scene.add(m);this.objects.push(m);h.mesh=m;
