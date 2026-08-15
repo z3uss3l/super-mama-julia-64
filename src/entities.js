@@ -162,6 +162,10 @@ export function animateCharacter(model,dt,state={}){
   }else if(anim==='attack'){
    p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.25,.45);
    p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.25,.45);
+  }else if(anim==='transform'){
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.0,.28);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.0,.28);
+   p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,.06,.18);
   }else if(anim==='land'){
    p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,.55,.4);
    p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,.55,.4);

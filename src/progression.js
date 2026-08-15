@@ -5,12 +5,16 @@ export class Progression{
   else if(type==='crystal'){this.state.addScore(350);this.audio.coin()}
   else if(type==='heart'){this.state.lives=Math.min(5,this.state.lives+1);this.state.addScore(250);this.ui.toast('❤️ Extra-Herz');this.audio.power()}
   else if(type==='mushroom'){
+   const wasLion=!!player.lion;
    player.lion=true;
    this.state.unlock('lion');
-   this.state.addScore(1500);
-   this.ui.toast('🍄🦁 LÖWENVERWANDLUNG! Julia wird zur Löwin.');
+   this.state.addScore(wasLion?500:1500);
+   this.ui.toast(wasLion
+    ? '🍄🦁 Löwenpilz gesammelt · Löwenkraft verstärkt!'
+    : '🍄🦁 LÖWENVERWANDLUNG! Julia wird zur Löwin.');
    this.audio.power();
-   this.particles.burst(model.position,0xffd43b,24,7);
+   this.particles.burst(model.position,0xffd43b,28,8);
+   this.particles.burst(model.position,0xff8a2b,16,5);
   }
   else if(type==='star'){this.state.unlock('starPower');player.star=8;this.state.addScore(750);this.ui.toast('⭐ Sternkraft');this.audio.power()}
   else if(type==='key'){this.state.unlock('dash');this.state.addScore(1000);this.ui.toast('↯ Dash freigeschaltet');this.audio.power()}

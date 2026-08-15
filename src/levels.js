@@ -47,14 +47,21 @@ export function buildLevel(index){
   const start=p.x-(count-1)*.45;
   addCoinLine(items,start,p.y+1.0,count,.9);
  }
- // Story pickup: the golden lion mushroom triggers the transformation.
- if(cfg.worldId==='forest' && cfg.index===3){
-  const mp=platforms[2];
-  items.push({type:'mushroom',x:mp.x,y:mp.y+1.15,z:0,story:'Der Löwenpilz'});
- }
- if(cfg.worldId==='forest' && cfg.index===4){
-  const mp=platforms[5];
-  items.push({type:'mushroom',x:mp.x,y:mp.y+1.15,z:0,story:'Der zweite Löwenpilz'});
+ // Story pickups: the golden lion mushrooms return as the central
+ // transformation mechanic of the Zauberwald. Each forest level gets one
+ // deliberately reachable mushroom; the first one transforms Julia.
+ if(cfg.worldId==='forest'){
+  const mushroomIndex=cfg.index===3?2:cfg.index===4?5:3;
+  const mp=platforms[Math.min(mushroomIndex,platforms.length-2)];
+  items.push({
+   type:'mushroom',
+   x:mp.x,
+   y:mp.y+1.18,
+   z:0,
+   story:cfg.index===3?'Der erste Löwenpilz':
+         cfg.index===4?'Der zweite Löwenpilz':'Der goldene Löwenpilz',
+   transform:true
+  });
  }
 
  // Vertical challenge coins and utility pickups.

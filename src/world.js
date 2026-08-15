@@ -39,9 +39,28 @@ export class WorldRuntime{
    else geo=new THREE.OctahedronGeometry(.22);
    const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.45,metalness:.08,emissive:color,emissiveIntensity:(it.type==='star'||it.type==='mushroom')?.35:0.04}));
    if(it.type==='mushroom'){
-    m.scale.set(1,.65,1);
-    const stem=new THREE.Mesh(new THREE.CylinderGeometry(.11,.14,.32,10),new THREE.MeshStandardMaterial({color:0xfff0c8,roughness:.65}));
+    // Distinctive Mario-like silhouette without using external assets:
+    // cap + stem + six cream spots + warm emissive glow.
+    m.scale.set(1,.72,1);
+    const stem=new THREE.Mesh(
+      new THREE.CylinderGeometry(.12,.15,.38,12),
+      new THREE.MeshStandardMaterial({color:0xfff0c8,roughness:.65})
+    );
     stem.position.y=-.25;stem.castShadow=true;m.add(stem);
+
+    const spotMat=new THREE.MeshStandardMaterial({
+      color:0xfff7d6,roughness:.5,emissive:0xffd43b,emissiveIntensity:.08
+    });
+    for(let si=0;si<6;si++){
+      const a=(si/6)*Math.PI*2;
+      const spot=new THREE.Mesh(new THREE.SphereGeometry(.075,8,6),spotMat);
+      spot.position.set(Math.cos(a)*.22,.10,Math.sin(a)*.22);
+      spot.scale.y=.38;
+      m.add(spot);
+    }
+    m.userData.mushroom=true;
+    m.userData.baseY=it.y;
+    m.userData.phase=Math.random()*Math.PI*2;
    }
    m.castShadow=true;m.position.set(it.x,it.y,it.z);this.scene.add(m);this.objects.push(m);
    this.items.push({...it,mesh:m,alive:true});
@@ -64,6 +83,15 @@ export class WorldRuntime{
   this.boss={...data,mesh:m,hp:data.stats.hp,maxHp:data.stats.hp,phase:0,attackTimer:1.4};
  }
  update(dt){
+  for(const it of this.items){
+   if(it.alive&&it.type==='mushroom'&&it.mesh){
+    const t=performance.now()*.001;
+    it.mesh.rotation.y+=dt*.9;
+    it.mesh.position.y=it.y+Math.sin(t*2.6+(it.mesh.userData.phase||0))*.10;
+    const s=1+Math.sin(t*5.2+(it.mesh.userData.phase||0))*.045;
+    it.mesh.scale.x=s;it.mesh.scale.z=s;
+   }
+  }
   for(const p of this.level?.moving||[]){
    p.prevY=p.y;p.move.phase+=dt*p.move.speed;p.y=p.baseY+Math.sin(p.move.phase)*p.move.amp;p.mesh.position.y=p.y;
   }
