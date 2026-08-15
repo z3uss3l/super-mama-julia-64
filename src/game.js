@@ -21,7 +21,7 @@ export class Game{
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
   this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
   this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;
-  this.bind();this.resize();addEventListener('resize',()=>this.resize());if(!this.state.save.unlocks.doubleJump)this.state.save.unlocks.doubleJump=true;this.state.save.unlocks.doubleJump=true;this.ui.setAbilities(this.state.save.unlocks);this.loop();
+  this.bind();this.resize();addEventListener('resize',()=>this.resize());this.state.save.unlocks.doubleJump=true;this.ui.setAbilities(this.state.save.unlocks);this.loop();
  }
  setupLighting(){
   const hemi=new THREE.HemisphereLight(0xffffff,0x273248,1.35);this.scene.add(hemi);
@@ -45,7 +45,7 @@ export class Game{
   const cp=this.state.checkpoint&&this.state.checkpoint.level===index?this.state.checkpoint:null;
   const spawnPlatform=this.level?.platforms?.[0];
   const spawnY=cp?.y??(spawnPlatform ? spawnPlatform.y+spawnPlatform.h/2+.02 : 1);
-  this.player={x:cp?.x??0,y:spawnY,z:0,vx:0,vy:0,inputAxis:0,maxSpeed:GAME.playerSpeed,accel:GAME.playerAccel,airAccel:GAME.playerAirAccel,friction:GAME.playerFriction,airFriction:GAME.playerAirFriction,facing:1,grounded:!cp&&!!spawnPlatform,jumps:0,inv:0,attack:0,dash:0,dashDirection:1,jumpBuffer:0,coyote:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:false,contact:0,hitStop:0,flash:0};
+  this.player={x:cp?.x??0,y:spawnY,z:0,vx:0,vy:0,inputAxis:0,maxSpeed:GAME.playerSpeed,accel:GAME.playerAccel,airAccel:GAME.playerAirAccel,friction:GAME.playerFriction,airFriction:GAME.playerAirFriction,facing:1,grounded:!cp&&!!spawnPlatform,jumps:0,inv:0,attack:0,dash:0,dashDirection:1,jumpBuffer:0,coyote:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:false,contact:0,hitStop:0,flash:0,anim:'idle',animTimer:0,transform:0,screenShake:0,stompBounce:0,landingKick:0,comboPulse:0,transformPulse:0};
   this.jumpHeldLast=false;this.playerModel=makePlayer();this.scene.add(this.playerModel);this.lionModel=makeLion();this.lionModel.visible=false;this.scene.add(this.lionModel);
   this.world.mount(this.level);if(this.level.boss)this.spawnBoss();
   this.state.quest={kind:this.level.cfg.questKind,target:this.level.cfg.questTarget,progress:0,done:false};
@@ -54,17 +54,18 @@ export class Game{
   this.ui.setObjective(this.level.cfg.quest);this.ui.setLevel(`${this.level.cfg.name} · ${index+1}/${LEVELS.length}`);if(this.level.cfg.story?.intro)this.ui.toast(`📖 ${this.level.cfg.story.chapter}: ${this.level.cfg.story.intro}`);this.audio.power();
  }
  spawnBoss(){const b=this.level.boss;this.world.addBoss(b);this.boss=this.world.boss;this.audio.boss();this.ui.showBoss(b.stats.name,b.hp,b.hp)}
- togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V5.7')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
+ togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V6.1.1')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
   if(!p)return false;
   if(p.grounded||p.coyote>0){
    p.vy=GAME.jumpSpeed;p.grounded=false;p.coyote=0;p.jumps=1;p.supportPlatform=null;p.jumpBuffer=0;
+   p.anim='jump';p.animTimer=.24;
    this.state.save.stats.jumps++;this.audio.jump();this.particles.burst(this.playerModel.position,0xffffff,6,3);
    return true;
   }
   if(this.state.save.unlocks.doubleJump&&p.jumps<2){
-   p.vy=GAME.jumpSpeed*.94;p.grounded=false;p.jumps++;p.jumpBuffer=0;this.audio.jump();
+   p.vy=GAME.jumpSpeed*.94;p.grounded=false;p.jumps++;p.jumpBuffer=0;p.anim='doubleJump';p.animTimer=.28;this.audio.jump();
    this.particles.burst(this.playerModel.position,0x7de3ff,8,4);
    return true;
   }
@@ -76,14 +77,45 @@ export class Game{
   this.state.save.stats.dashes++;this.audio.dash();this.particles.burst(this.playerModel.position,0xffd43b,16,7)
  }
  attack(){
-  const p=this.player;if(p.attack>0)return;p.attack=.24;p.flash=.12;this.audio.hit();this.follow.kick(.035);
+  const p=this.player;if(p.attack>0)return;p.attack=.24;p.flash=.12;p.anim='attack';p.animTimer=.24;this.audio.hit();this.follow.kick(.035);
   const dir=p.vx?Math.sign(p.vx):p.facing,px=p.x+dir*1.05;
   for(const e of this.world.enemies){if(!e.alive)continue;const dx=Math.abs(e.mesh.position.x-px),dy=Math.abs(e.mesh.position.y-p.y);if(dx<1.35&&dy<1.25)this.damageEnemy(e,1)}
   if(this.boss){const dx=Math.abs(this.boss.mesh.position.x-px),dy=Math.abs(this.boss.mesh.position.y-p.y);if(dx<1.8&&dy<1.6)this.damageBoss(1)}
  }
+ triggerFeedback(kind,strength=1){
+  const p=this.player;if(!p)return;
+  if(kind==='stomp'){p.screenShake=Math.max(p.screenShake,.16*strength);p.stompBounce=.22;p.comboPulse=.22}
+  else if(kind==='land'){p.screenShake=Math.max(p.screenShake,.07*strength);p.landingKick=.16}
+  else if(kind==='hit'){p.screenShake=Math.max(p.screenShake,.11*strength)}
+  else if(kind==='transform'){p.screenShake=Math.max(p.screenShake,.22*strength);p.transformPulse=.72}
+ }
+ stompEnemy(e){
+  if(!e||!e.alive)return false;
+  e.alive=false;
+  e.stompTimer=.14;
+  e.hitFlash=0;
+  e.mesh.visible=true;
+  e.mesh.scale.set(1.22,.18,1.22);
+  this.player.vy=7.2;
+  this.player.grounded=false;
+  this.player.anim='stomp';this.player.animTimer=.22;
+  this.player.stompBounce=.22;this.player.hitStop=.045;this.triggerFeedback('stomp',1);
+  this.player.jumps=1;
+  this.player.coyote=0;
+  this.state.save.stats.kills++;
+  this.state.addScore(ENEMY_STATS[e.type].value+50);
+  this.state.quest.progress++;
+  this.state.combo++;
+  this.state.comboTimer=GAME.comboWindow;
+  this.ui.setCombo(this.state.combo);if(this.state.combo>=2)this.ui.toast(`💥 COMBO x${this.state.combo}`);
+  this.audio.hit();
+  this.particles.burst(e.mesh.position,0xffd43b,14,5.5);
+  this.follow.kick(.045);
+  return true;
+ }
  damageEnemy(e,n){
-  e.hp-=n;e.hitFlash=.13;e.mesh.scale.setScalar(1.15);this.particles.burst(e.mesh.position,0xffd43b,9,5);
-  if(e.hp<=0){e.alive=false;e.mesh.visible=false;this.state.save.stats.kills++;this.state.addScore(ENEMY_STATS[e.type].value);this.state.quest.progress++;this.state.combo++;this.state.comboTimer=GAME.comboWindow;this.ui.setCombo(this.state.combo)}
+  e.hp-=n;e.hitFlash=.13;e.hitAnim=.13;e.ai='hurt';e.aiTimer=.18;e.mesh.scale.setScalar(1.15);this.particles.burst(e.mesh.position,0xffd43b,9,5);
+  if(e.hp<=0){e.alive=false;e.mesh.visible=false;this.state.save.stats.kills++;this.state.addScore(ENEMY_STATS[e.type].value);this.state.quest.progress++;this.state.combo++;this.state.comboTimer=GAME.comboWindow;this.ui.setCombo(this.state.combo);if(this.state.combo>=2)this.ui.toast(`💥 COMBO x${this.state.combo}`)}
  }
  damageBoss(n){
   const b=this.boss;b.hp-=n;this.state.addScore(500);this.particles.burst(b.mesh.position,0xff6a00,15,7);this.ui.showBoss(b.stats.name,b.hp,b.maxHp);this.follow.kick(.18);
@@ -103,23 +135,107 @@ export class Game{
  updateEnemies(dt){
   const p=this.player;
   for(const e of this.world.enemies){
-   if(!e.alive)continue;e.phase+=dt;e.fire-=dt;
-   const st=ENEMY_STATS[e.type],dx=p.x-e.mesh.position.x,dist=Math.abs(dx);
-   if(e.hitFlash>0){e.hitFlash-=dt;e.mesh.scale.setScalar(1.12)}else e.mesh.scale.setScalar(1);animateCharacter(e.mesh,dt,{vx:e.mesh.position.x-e.x,grounded:true});
+   if(!e.alive){
+    if(e.stompTimer>0){
+     e.stompTimer-=dt;
+     const t=Math.max(0,e.stompTimer/.14);
+     e.mesh.visible=t>0;
+     animateCharacter(e.mesh,dt,{stomp:t});
+     e.mesh.scale.set(1.22,.18+.82*t,1.22);
+    }else e.mesh.visible=false;
+    continue;
+   }
+
+   const st=ENEMY_STATS[e.type];
+   if(e.type!=='bat'&&e.supportPlatform){
+    e.y=e.supportPlatform.y+1;
+   }
+   e.phase+=dt;
+   e.fire-=dt;
+   e.aiTimer=Math.max(0,(e.aiTimer||0)-dt);
+   e.attackTimer=Math.max(0,(e.attackTimer||0)-dt);
+   e.recoil=Math.max(0,(e.recoil||0)-dt);
+
+   const dx=p.x-e.mesh.position.x;
+   const dist=Math.abs(dx);
+   const dir=Math.sign(dx)||e.direction||1;
+   e.direction=dir;
+   const alert=dist<st.aggro;
+
+   if(e.hitFlash>0){
+    e.hitFlash-=dt;
+    e.mesh.scale.setScalar(1.12);
+   }else e.mesh.scale.setScalar(1);
+
+   e.hitAnim=Math.max(0,(e.hitAnim||0)-dt);
+
+   if(alert && e.ai==='patrol'){
+    e.ai='alert';e.aiTimer=.18;
+   }
+   if(!alert && e.ai!=='patrol' && e.aiTimer<=0)e.ai='patrol';
+
    if(e.type==='turret'){
-    if(dist<st.aggro&&e.fire<=0){this.projectile(e.mesh.position.x,e.mesh.position.y,Math.sign(dx)||1,0);e.fire=1/st.fireRate}
+    if(alert){
+     e.ai='alert';
+     if(e.attackTimer<=0){
+      e.attackTimer=1/st.fireRate;
+      e.recoil=.16;
+      this.projectile(e.mesh.position.x,e.mesh.position.y,dir,0);
+      this.particles.burst(e.mesh.position,0xffa21c,5,2.5);
+     }
+    }
+    animateCharacter(e.mesh,dt,{vx:dir*.1,grounded:true,alert,attack:e.recoil>0,recoil:e.recoil});
    }else if(e.type==='bat'){
-    if(dist<st.aggro)e.mesh.position.x+=Math.sign(dx)*st.speed*dt*.75;
-    e.mesh.position.y=e.y+Math.sin(e.phase*3)*.7;
+    const baseY=e.y;
+    let targetY=baseY+Math.sin(e.phase*3)*.7;
+    let swoop=0;
+    if(alert){
+     if(e.ai==='alert'&&e.aiTimer<=0&&e.attackTimer<=0){e.ai='attack';e.attackTimer=.72}
+     if(e.ai==='attack'){
+      targetY+=THREE.MathUtils.clamp(p.y-baseY,-.65,.65)*.55;
+      e.mesh.position.x+=dir*st.speed*dt*1.05;
+      swoop=1;
+      if(e.attackTimer<=0)e.ai='recover';
+     }else e.mesh.position.x+=dir*st.speed*dt*.35;
+    }else{
+     e.mesh.position.x+=Math.sin(e.phase)*st.speed*dt*.18;
+    }
+    e.mesh.position.y=targetY;
+    animateCharacter(e.mesh,dt,{vx:dir*st.speed,grounded:false,alert,swoop});
+   }else if(e.type==='runner'){
+    if(alert&&e.ai==='alert'&&e.aiTimer<=0&&e.attackTimer<=0){e.ai='attack';e.attackTimer=.55}
+    if(e.ai==='attack'){
+     e.mesh.position.x+=dir*st.speed*1.45*dt;
+     if(e.attackTimer<=0)e.ai='recover';
+    }else if(e.ai==='recover'){
+     e.mesh.position.x+=dir*st.speed*.45*dt;
+     if(!alert)e.ai='patrol';
+    }else{
+     const direction=alert?dir:Math.sign(Math.sin(e.phase))||e.direction;
+     const proposed=e.mesh.position.x+direction*st.speed*dt;
+     const platform=e.supportPlatform;
+     const edgeSafe=platform&&Math.abs(proposed-platform.x)<=Math.max(.4,platform.w/2-.35);
+     e.mesh.position.x=edgeSafe?proposed:e.mesh.position.x;
+    }
+    e.mesh.position.y=e.y;
+    animateCharacter(e.mesh,dt,{vx:dir*(e.ai==='attack'?st.speed*1.45:st.speed),grounded:true,alert,charge:e.ai==='attack',attack:e.ai==='attack',hit:e.hitAnim>0});
    }else{
-    const direction=dist<st.aggro?Math.sign(dx):Math.sign(Math.sin(e.phase));
-    const proposed=e.mesh.position.x+direction*st.speed*dt;
-    const platform=this.level.platforms.find(p=>Math.abs(p.y-(e.y-1))<.18&&Math.abs(proposed-p.x)<=p.w/2+.05);
+    if(alert&&e.ai==='alert'&&e.aiTimer<=0&&e.attackTimer<=0){e.ai='attack';e.attackTimer=.8}
+    const speed=e.ai==='attack'?st.speed*1.15:st.speed;
+    const direction=alert?dir:Math.sign(Math.sin(e.phase))||e.direction;
+    const proposed=e.mesh.position.x+direction*speed*dt;
+    const platform=this.level.platforms.find(pl=>Math.abs(pl.y-(e.y-1))<.18&&Math.abs(proposed-pl.x)<=pl.w/2+.05);
     const edgeSafe=platform&&Math.abs(proposed-p.x)<=Math.max(.4,platform.w/2-.35);
     e.mesh.position.x=edgeSafe?proposed:e.mesh.position.x;
     e.mesh.position.y=e.y;
+    if(e.attackTimer<=0&&e.ai==='attack')e.ai='alert';
+    animateCharacter(e.mesh,dt,{vx:direction*speed,grounded:true,alert,attack:e.ai==='attack',hit:e.hitAnim>0});
    }
-   if(p.contact<=0&&dist<st.contactRange&&Math.abs(e.mesh.position.y-p.y)<st.contactHeight){this.hurt();p.contact=.8}
+
+   const postDist=Math.abs(p.x-e.mesh.position.x);
+   if(p.contact<=0&&postDist<st.contactRange&&Math.abs(e.mesh.position.y-p.y)<st.contactHeight){
+    this.hurt();p.contact=.8;
+   }
   }
  }
  updateBoss(dt){
@@ -143,7 +259,13 @@ export class Game{
  }
  update(dt){
   if(this.state.mode!=='play')return;
-  const p=this.player;this.input.sync();
+  const p=this.player;if(p.hitStop>0){
+   p.hitStop=Math.max(0,p.hitStop-dt);
+   this.particles.update(dt*.15);
+   this.input.consume();
+   return;
+  }
+  this.input.sync();
   const jumpDown=this.input.jump===true;
   const jumpEdge=this.input.jumpPressed===true || (jumpDown&&!this.jumpHeldLast);
   if(jumpEdge){const jumped=this.jump();if(!jumped)p.jumpBuffer=GAME.jumpBuffer;}
@@ -151,18 +273,52 @@ export class Game{
   this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);
   p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
   const wasGrounded=p.grounded;
+  const stompPrevY=p.y;
+  const stompPrevVy=p.vy;
   p.vy+=GAME.gravity*dt;
   const physics=resolvePlayer(p,this.level.platforms,dt);
-  if(physics.landed){p.land=.12;this.particles.burst(this.playerModel.position,0xffffff,5,2.2);this.follow.kick(.035)}
+  if(physics.landed){p.land=.12;p.anim='land';p.animTimer=.16;this.triggerFeedback('land',1);this.particles.burst(this.playerModel.position,0xffffff,5,2.2);this.follow.kick(.035)}
   p.land=Math.max(0,(p.land||0)-dt);
   if(wasGrounded&&!p.grounded&&p.vy<=0)p.coyote=GAME.coyoteTime;
   else if(p.grounded)p.coyote=0;
+  // Stomp: a downward-moving player crossing an enemy's top from above
+  // defeats the enemy and bounces the player upward. Side contact still hurts.
+  if(stompPrevVy<0){
+   const playerLeft=p.x-.34,playerRight=p.x+.34;
+   for(const e of this.world.enemies){
+    if(!e.alive)continue;
+    const st=ENEMY_STATS[e.type];
+    const enemyHeight=st.contactHeight||.9;
+    const enemyTop=e.mesh.position.y+enemyHeight*.5;
+    const enemyLeft=e.mesh.position.x-(e.type==='bat'?.52:.48);
+    const enemyRight=e.mesh.position.x+(e.type==='bat'?.52:.48);
+    const crossedTop=stompPrevY>=enemyTop-.12 && p.y<=enemyTop+.12;
+    const horizontal=playerRight>enemyLeft && playerLeft<enemyRight;
+    if(crossedTop&&horizontal){
+     this.stompEnemy(e);
+     break;
+    }
+   }
+  }
   if(this.input.jumpReleased===true&&p.vy>2)p.vy*=.52;
   if(p.jumpBuffer>0){
    p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
    if(p.grounded&&this.jump())p.jumpBuffer=0;
   }
+  p.screenShake=Math.max(0,p.screenShake-dt);
+  p.stompBounce=Math.max(0,p.stompBounce-dt);
+  p.landingKick=Math.max(0,p.landingKick-dt);
+  p.comboPulse=Math.max(0,p.comboPulse-dt);
+  p.transformPulse=Math.max(0,p.transformPulse-dt);
   p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.flash=Math.max(0,p.flash-dt);
+  if(p.animTimer>0){
+   p.animTimer=Math.max(0,p.animTimer-dt);
+   if(p.animTimer<=0)p.anim='idle';
+  }
+  if(p.anim==='idle'){
+   if(!p.grounded)p.anim=p.vy>0?'jump':'fall';
+   else if(p.attack>0)p.anim='attack';
+  }
   if(p.y<-3)this.hurt(true);
   this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=0;
   const jumpStretch=p.grounded?1:1.05;
@@ -174,7 +330,19 @@ export class Game{
   animateCharacter(this.lionModel,dt,p);
   this.playerModel.visible=!p.lion&&(p.inv<=0||Math.floor(p.inv*14)%2===0);
   this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);this.lionModel.rotation.y=0;this.lionModel.scale.x=p.facing<0?-1:1;
+  if(p.transform>0){
+   const t=1-p.transform/.72;
+   const pulse=1+Math.sin(t*Math.PI)*.16;
+   this.lionModel.scale.y*=pulse;
+   this.lionModel.scale.z*=pulse;
+  }
+  const wasLion=p.lion;
   this.collect();
+  if(!wasLion&&p.lion){
+   p.transform=.72;this.triggerFeedback('transform',1);
+   this.particles.burst(this.playerModel.position,0xffd43b,28,8);
+  }
+  if(p.transform>0)p.transform=Math.max(0,p.transform-dt);
   if(p.star>0){
    p.star=Math.max(0,p.star-dt);
    if(Math.random()<dt*9)this.particles.burst(this.playerModel.position,0xffffff,2,3);
@@ -188,6 +356,11 @@ export class Game{
   if(!this.state.checkpoint&&p.x>this.level.cfg.length*.48){this.state.checkpoint={x:p.x,y:p.y};this.state.persist();this.ui.toast('🚩 CHECKPOINT');}
   if(p.x>this.level.goalX)this.completeLevel();
   this.follow.follow(p.x,p.y,dt,p.vx,p.vy);
+  if(p.screenShake>0){
+   const t=performance.now()*.07;
+   this.follow.camera.position.x+=Math.sin(t)*p.screenShake;
+   this.follow.camera.position.y+=Math.cos(t*1.17)*p.screenShake*.45;
+  }
   this.ui.setStats({score:this.state.score,coins:this.state.coins,lives:this.state.lives,combo:this.state.combo});
   this.jumpHeldLast=jumpDown;
   this.input.consume();
@@ -198,9 +371,9 @@ export class Game{
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');
-  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …`,'V5.7');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
+  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …`,'V6.1.1');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
  }
- gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V5.7')}
- win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}`,'V5.7');this.audio.win()}
+ gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V6.1.1')}
+ win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}`,'V6.1.1');this.audio.win()}
  loop(){requestAnimationFrame(()=>this.loop());const dt=Math.min(.033,this.clock.getDelta());this.update(dt);this.renderer.render(this.scene,this.camera)}
 }

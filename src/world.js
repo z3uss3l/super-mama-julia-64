@@ -30,7 +30,13 @@ export class WorldRuntime{
   }
   for(const e of level.enemies){
    const m=makeEnemy(e.type);m.position.set(e.x,e.y,0);this.scene.add(m);this.objects.push(m);
-   const st=ENEMY_STATS[e.type];this.enemies.push({...e,mesh:m,hp:st.hp,maxHp:st.hp,alive:true,phase:Math.random()*6,hitFlash:0,fire:0});
+   const st=ENEMY_STATS[e.type];
+   let support=null,bestDist=Infinity;
+   for(const pl of level.platforms){
+    const d=Math.abs((pl.y+pl.h*.5)-e.y);
+    if(d<bestDist){bestDist=d;support=pl;}
+   }
+   this.enemies.push({...e,mesh:m,hp:st.hp,maxHp:st.hp,alive:true,phase:Math.random()*6,hitFlash:0,hitAnim:0,fire:0,ai:'patrol',aiTimer:0,attackTimer:0,recoil:0,direction:1,supportPlatform:support});
   }
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.8,.12,12,28),new THREE.MeshStandardMaterial({color:level.world.accent,emissive:level.world.accent,emissiveIntensity:.55}));ring.castShadow=true;
   ring.position.set(level.goalX,.8,0);this.scene.add(ring);this.objects.push(ring);this.goal=ring;

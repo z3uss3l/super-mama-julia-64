@@ -111,28 +111,108 @@ export function animateCharacter(model,dt,state={}){
  const u=model.userData,p=u.parts;u.t+=dt;
  const speed=Math.abs(state.vx||0),moving=speed>.35,air=!state.grounded;
  const cycle=u.t*(moving?9+speed*.45:3);
+ const anim=state.anim||'';
+
  if(u.kind==='player'){
   const swing=moving?Math.sin(cycle)*.48:Math.sin(u.t*2)*.025;
-  p.legL.rotation.x=swing;p.legR.rotation.x=-swing;p.armL.rotation.x=-swing*.65;p.armR.rotation.x=swing*.65;
+  const runLegL=swing,runLegR=-swing;
+  p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,runLegL,.28);
+  p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,runLegR,.28);
+  p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-swing*.65,.28);
+  p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,swing*.65,.28);
+
+  // State-specific poses: readable silhouette rather than generic bobbing.
+  if(anim==='jump'){
+   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,-.22,.32);
+   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,.22,.32);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-.7,.32);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-.7,.32);
+  }else if(anim==='fall'){
+   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,.32,.24);
+   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,-.32,.24);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-.35,.24);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,.35,.24);
+  }else if(anim==='stomp'){
+   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,.55,.5);
+   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,-.55,.5);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.0,.5);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.0,.5);
+  }else if(anim==='attack'){
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.25,.45);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.25,.45);
+  }else if(anim==='land'){
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,.55,.4);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,.55,.4);
+  }
+
   const bob=air?Math.sin(u.t*10)*.025:Math.abs(Math.sin(cycle))*.035;
   const lean=moving?THREE.MathUtils.clamp((state.vx||0)*-.018,-.14,.14):0;
-  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,lean+(state.attack?-.12:0),.22);
-  model.position.y+=0;
-  
+  const targetBody=lean+(state.attack?-.12:0)+(anim==='stomp'?.08:0)+(anim==='land'?.06:0);
+  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,targetBody,.22);
   p.head.rotation.z=THREE.MathUtils.lerp(p.head.rotation.z,state.facing<0?.04:-.04,.08);
   p.scarf.rotation.z=Math.sin(u.t*12)*.08+(state.vx?-.08*state.facing:0);
   p.bun.rotation.z=Math.sin(u.t*8)*.04;
-  model.userData.animBob=bob;model.position.y+=bob*.12;
+
+  if(anim==='jump')p.head.rotation.z+=.05;
+  if(anim==='fall')p.head.rotation.z-=.05;
+  if(anim==='attack')p.scarf.rotation.z*=.35;
+
+  u.animBob=bob;
+  const squash=anim==='land'?1.08:anim==='stomp'?1.04:1;
+  model.scale.y=THREE.MathUtils.lerp(model.scale.y,squash,.28);
+  model.scale.x=THREE.MathUtils.lerp(model.scale.x,1/squash,.28);
+  model.position.y+=bob*.12;
+
  }else if(u.kind==='lion'){
-  const swing=Math.sin(cycle)*.25;p.mane.rotation.z=swing*.25;p.tail.rotation.z=-.8+Math.sin(u.t*6)*.22;p.body.rotation.z=Math.sin(u.t*4)*.025;
+  const swing=Math.sin(cycle)*.25;
+  p.mane.rotation.z=THREE.MathUtils.lerp(p.mane.rotation.z,swing*.25,.22);
+  p.tail.rotation.z=THREE.MathUtils.lerp(p.tail.rotation.z,-.8+Math.sin(u.t*6)*.22,.2);
+  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,Math.sin(u.t*4)*.025,.2);
+  if(anim==='jump'||anim==='doubleJump'){
+   p.body.rotation.z+=.08;
+   p.tail.rotation.z=-1.05;
+  }else if(anim==='stomp'){
+   p.body.scale.y=THREE.MathUtils.lerp(p.body.scale.y,1.08,.35);
+   p.mane.scale.y=THREE.MathUtils.lerp(p.mane.scale.y,.9,.35);
+  }else{
+   p.body.scale.y=THREE.MathUtils.lerp(p.body.scale.y,1,.2);
+   p.mane.scale.y=THREE.MathUtils.lerp(p.mane.scale.y,.78,.2);
+  }
+
  }else if(u.kind==='bat'){
-  const flap=Math.sin(u.t*14)*.55;p.wingL.rotation.x=flap;p.wingR.rotation.x=-flap;p.body.rotation.z=Math.sin(u.t*7)*.08;
+  const flap=Math.sin(u.t*14)*.55;
+  p.wingL.rotation.x=flap;p.wingR.rotation.x=-flap;
+  const swoop=state.swoop||0;
+  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,Math.sin(u.t*7)*.08+swoop*.18,.18);
+  p.body.scale.y=THREE.MathUtils.lerp(p.body.scale.y,1+(state.alert?.08:0),.18);
  }else if(u.kind==='slime'){
-  const squish=1+Math.sin(u.t*8)*.07;p.body.scale.y=.8/squish;p.body.scale.x=squish;p.body.scale.z=squish;
+  if(state.hit)p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,.18,.35);
+  if(state.stomp){
+   const t=Math.max(0,Math.min(1,state.stomp));
+   p.body.scale.y=.12+.68*t;p.body.scale.x=1.28-.28*t;p.body.scale.z=1.28-.28*t;
+  }else{
+   const hop=state.attack?Math.abs(Math.sin(u.t*13))*.13:0;
+   const squish=1+Math.sin(u.t*(state.alert?12:8))*.07;
+   p.body.scale.y=(.8+hop)/squish;p.body.scale.x=squish;p.body.scale.z=squish;
+   p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,state.alert?Math.sin(u.t*10)*.06:0,.16);
+  }
  }else if(u.kind==='runner'){
-  p.body.rotation.z=Math.sin(u.t*10)*.06;
+  const charge=state.charge||0;
+  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,Math.sin(u.t*(state.alert?16:10))*(state.alert?.10:.06),.22);
+  p.body.scale.x=THREE.MathUtils.lerp(p.body.scale.x,1+(charge?.08:0),.2);
+  p.body.scale.y=THREE.MathUtils.lerp(p.body.scale.y,1-(charge?.06:0),.2);
+  if(state.attack)p.body.position.y=THREE.MathUtils.lerp(p.body.position.y,.08,.3);
+  else p.body.position.y=THREE.MathUtils.lerp(p.body.position.y,0,.18);
+  if(state.stomp){
+   const t=Math.max(0,Math.min(1,state.stomp));
+   p.body.scale.y=.12+.68*t;p.body.scale.x=1.25-.25*t;p.body.scale.z=1.25-.25*t;
+  }
   if(p.ring)p.ring.rotation.z+=dt*1.8;
  }else if(u.kind==='turret'){
-  p.body.rotation.y+=dt*.7;p.eye.scale.setScalar(1+Math.sin(u.t*7)*.12);
+  p.body.rotation.y+=dt*(state.alert?.35:.7);
+  p.eye.scale.setScalar(1+Math.sin(u.t*7)*.12);
+  p.body.scale.y=THREE.MathUtils.lerp(p.body.scale.y,state.attack?.92:1,.18);
+  if(state.recoil>0)p.body.position.z=Math.sin(u.t*40)*.04;
  }
 }
+
