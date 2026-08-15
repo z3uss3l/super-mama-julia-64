@@ -54,7 +54,7 @@ export class Game{
   this.ui.setObjective(this.level.cfg.quest);this.ui.setLevel(`${this.level.cfg.name} · ${index+1}/${LEVELS.length}`);if(this.level.cfg.story?.intro)this.ui.toast(`📖 ${this.level.cfg.story.chapter}: ${this.level.cfg.story.intro}`);this.audio.power();
  }
  spawnBoss(){const b=this.level.boss;this.world.addBoss(b);this.boss=this.world.boss;this.audio.boss();this.ui.showBoss(b.stats.name,b.hp,b.hp)}
- togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V6.1.1')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
+ togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V7.0.0')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
   if(!p)return false;
@@ -89,10 +89,33 @@ export class Game{
   else if(kind==='hit'){p.screenShake=Math.max(p.screenShake,.11*strength)}
   else if(kind==='transform'){p.screenShake=Math.max(p.screenShake,.22*strength);p.transformPulse=.72}
  }
+ animateEnemyStomp(e,dt){
+  if(!e?.mesh||e.stompTimer<=0)return;
+  const t=1-Math.max(0,e.stompTimer/.28);
+  const type=e.type;
+  if(type==='slime'){
+   const squash=Math.sin(Math.min(1,t)*Math.PI);
+   e.mesh.scale.set(1+0.38*squash,1-0.78*squash,1+0.38*squash);
+   e.mesh.rotation.z=Math.sin(t*Math.PI*5)*.16;
+  }else if(type==='runner'){
+   const s=Math.sin(t*Math.PI);
+   e.mesh.scale.set(1+.22*s,.35+.65*(1-s*.55),1+.12*s);
+   e.mesh.rotation.z=t*Math.PI*2.4;
+  }else if(type==='bat'){
+   const s=Math.sin(t*Math.PI);
+   e.mesh.scale.set(1+.28*s,1-.38*s,1+.28*s);
+   e.mesh.rotation.z=t*Math.PI*3.2;
+  }else{
+   const s=Math.sin(t*Math.PI);
+   e.mesh.scale.set(1+.16*s,.55+.45*(1-s),1+.16*s);
+   e.mesh.rotation.z=t*Math.PI*1.6;
+  }
+  e.mesh.position.y=e.deathBaseY+Math.sin(t*Math.PI)*.18;
+ }
  stompEnemy(e){
   if(!e||!e.alive)return false;
   e.alive=false;
-  e.stompTimer=.14;
+  e.stompTimer=.28;e.deathBaseY=e.mesh.position.y;e.mesh.rotation.z=0;
   e.hitFlash=0;
   e.mesh.visible=true;
   e.mesh.scale.set(1.22,.18,1.22);
@@ -109,8 +132,9 @@ export class Game{
   this.state.comboTimer=GAME.comboWindow;
   this.ui.setCombo(this.state.combo);if(this.state.combo>=2)this.ui.toast(`💥 COMBO x${this.state.combo}`);
   this.audio.hit();
-  this.particles.burst(e.mesh.position,0xffd43b,14,5.5);
-  this.follow.kick(.045);
+  this.particles.burst(e.mesh.position,0xffd43b,18,6.5);
+  this.particles.burst(e.mesh.position,e.type==='slime'?0x7cff7c:e.type==='bat'?0xff6b73:e.type==='runner'?0xb88cff:0xffb04a,10,4.5);
+  this.follow.kick(.065);
   return true;
  }
  damageEnemy(e,n){
@@ -138,11 +162,11 @@ export class Game{
    if(!e.alive){
     if(e.stompTimer>0){
      e.stompTimer-=dt;
-     const t=Math.max(0,e.stompTimer/.14);
-     e.mesh.visible=t>0;
-     animateCharacter(e.mesh,dt,{stomp:t});
-     e.mesh.scale.set(1.22,.18+.82*t,1.22);
-    }else e.mesh.visible=false;
+     e.mesh.visible=true;
+     this.animateEnemyStomp(e,dt);
+    }else{
+     e.mesh.visible=false;
+    }
     continue;
    }
 
@@ -288,11 +312,12 @@ export class Game{
    for(const e of this.world.enemies){
     if(!e.alive)continue;
     const st=ENEMY_STATS[e.type];
-    const enemyHeight=st.contactHeight||.9;
-    const enemyTop=e.mesh.position.y+enemyHeight*.5;
-    const enemyLeft=e.mesh.position.x-(e.type==='bat'?.52:.48);
-    const enemyRight=e.mesh.position.x+(e.type==='bat'?.52:.48);
-    const crossedTop=stompPrevY>=enemyTop-.12 && p.y<=enemyTop+.12;
+    const enemyHalfHeight=e.type==='turret'?.45:.345;
+    const enemyTop=e.mesh.position.y+enemyHalfHeight;
+    const enemyHalfWidth=e.type==='bat'?.52:.43;
+    const enemyLeft=e.mesh.position.x-enemyHalfWidth;
+    const enemyRight=e.mesh.position.x+enemyHalfWidth;
+    const crossedTop=stompPrevY>=enemyTop-.16 && p.y<=enemyTop+.16;
     const horizontal=playerRight>enemyLeft && playerLeft<enemyRight;
     if(crossedTop&&horizontal){
      this.stompEnemy(e);
@@ -340,7 +365,9 @@ export class Game{
   this.collect();
   if(!wasLion&&p.lion){
    p.transform=.72;this.triggerFeedback('transform',1);
-   this.particles.burst(this.playerModel.position,0xffd43b,28,8);
+   this.particles.burst(this.playerModel.position,0xffd43b,34,9);
+   this.particles.burst(this.playerModel.position,0xff8a2b,18,6);
+   this.follow.kick(.14);
   }
   if(p.transform>0)p.transform=Math.max(0,p.transform-dt);
   if(p.star>0){
@@ -371,9 +398,9 @@ export class Game{
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');
-  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …`,'V6.1.1');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
+  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …`,'V7.0.0');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
  }
- gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V6.1.1')}
- win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}`,'V6.1.1');this.audio.win()}
+ gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V7.0.0')}
+ win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}`,'V7.0.0');this.audio.win()}
  loop(){requestAnimationFrame(()=>this.loop());const dt=Math.min(.033,this.clock.getDelta());this.update(dt);this.renderer.render(this.scene,this.camera)}
 }

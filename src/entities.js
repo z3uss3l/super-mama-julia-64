@@ -30,24 +30,35 @@ export function makePlayer(){
   parts.bun.position.set(-.27,1.55,-.02);
   g.add(parts.bun);
 
-  // Deliberate side-profile face. Local +X is the forward direction;
-  // Game.js mirrors the complete model on X for left/right movement.
-  parts.eye=new THREE.Mesh(new THREE.SphereGeometry(.048,10,8),S(0x15151a));
-  parts.eye.position.set(.355,1.275,.055);
+  // Face is on +Z because the gameplay camera looks from +Z.
+  // It is intentionally asymmetric: one visible eye plus offset nose/mouth
+  // reads as a three-quarter side profile and follows X mirroring.
+  parts.eye=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),S(0x15151a));
+  parts.eye.position.set(.105,1.285,.355);
   g.add(parts.eye);
 
-  parts.brow=meshBox(.095,.022,.018,S(0x6d432d));
-  parts.brow.position.set(.355,1.34,.055);
+  parts.brow=meshBox(.10,.022,.018,S(0x6d432d));
+  parts.brow.position.set(.105,1.345,.358);
   g.add(parts.brow);
 
-  parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.038,8,6),M(0xe79b79));
-  parts.nose.scale.set(1.25,.72,.72);
-  parts.nose.position.set(.382,1.205,.045);
+  parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),M(0xe79b79));
+  parts.nose.scale.set(1.35,.78,1.0);
+  parts.nose.position.set(.18,1.205,.375);
   g.add(parts.nose);
 
-  parts.mouth=meshBox(.018,.028,.105,M(0x8f3e55));
-  parts.mouth.position.set(.378,1.115,.045);
+  parts.mouth=meshBox(.018,.032,.11,M(0x8f3e55));
+  parts.mouth.position.set(.14,1.115,.37);
   g.add(parts.mouth);
+
+  parts.cheek=new THREE.Mesh(new THREE.SphereGeometry(.065,10,8),M(0xf29b91));
+  parts.cheek.scale.set(.9,.55,.22);
+  parts.cheek.position.set(.02,1.17,.37);
+  g.add(parts.cheek);
+
+  parts.hairFringe=meshBox(.46,.20,.18,M(0xf4c430));
+  parts.hairFringe.position.set(.10,1.55,.28);
+  parts.hairFringe.rotation.z=-.16;
+  g.add(parts.hairFringe);
 
   parts.armL=limb(.13,.48,.14,M(0xf6c7a5));
   parts.armL.position.set(-.39,.73,.03);
@@ -78,6 +89,9 @@ export function makeLion(){
  parts.mane=new THREE.Mesh(new THREE.SphereGeometry(.68,18,14),S(0xff6500));parts.mane.scale.set(1,.78,.8);parts.mane.position.y=.72;g.add(parts.mane);
  parts.body=meshBox(1.08,.62,.72,M(0xe88a18));parts.body.position.y=.62;g.add(parts.body);
  parts.head=new THREE.Mesh(new THREE.SphereGeometry(.5,16,12),M(0xe88a18));parts.head.position.set(.45,.98,0);g.add(parts.head);
+ parts.eye=new THREE.Mesh(new THREE.SphereGeometry(.055,10,8),S(0x17110c));parts.eye.position.set(.72,1.08,.38);g.add(parts.eye);
+ parts.muzzle=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),M(0xf4bd76));parts.muzzle.scale.set(1,.7,.65);parts.muzzle.position.set(.78,.88,.34);g.add(parts.muzzle);
+ parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),S(0x3b1d12));parts.nose.position.set(.88,.92,.54);g.add(parts.nose);
  parts.tail=limb(.10,.7,.10,M(0xe88a18));parts.tail.position.set(-.55,.7,0);parts.tail.rotation.z=-.8;g.add(parts.tail);
  g.userData={kind:'lion',parts,t:0};return g;
 }
@@ -95,8 +109,16 @@ export function makeEnemy(type,boss=false){
    parts.wingR=meshBox(.55,.1,.3,mat);parts.wingR.position.z=.45;g.add(parts.wingR);
   }
   if(type==='runner'){
-   parts.eyeL=new THREE.Mesh(new THREE.SphereGeometry(.055,8,6),S(0xffffff));parts.eyeL.position.set(-.16,.08,.37);g.add(parts.eyeL);
+   parts.eyeL=new THREE.Mesh(new THREE.SphereGeometry(.06,8,6),S(0xffffff));parts.eyeL.position.set(-.16,.08,.37);g.add(parts.eyeL);
    parts.eyeR=parts.eyeL.clone();parts.eyeR.position.x=.16;g.add(parts.eyeR);
+   parts.pupilL=new THREE.Mesh(new THREE.SphereGeometry(.025,7,5),S(0x111111));parts.pupilL.position.set(-.16,.08,.425);g.add(parts.pupilL);
+   parts.pupilR=parts.pupilL.clone();parts.pupilR.position.x=.16;g.add(parts.pupilR);
+  }
+  if(type==='slime'||type==='bat'){
+   parts.eyeL=new THREE.Mesh(new THREE.SphereGeometry(.055,8,6),S(0xffffff));parts.eyeL.position.set(-.14,.08,.34);g.add(parts.eyeL);
+   parts.eyeR=parts.eyeL.clone();parts.eyeR.position.x=.14;g.add(parts.eyeR);
+   parts.pupilL=new THREE.Mesh(new THREE.SphereGeometry(.023,7,5),S(0x111111));parts.pupilL.position.set(-.14,.08,.39);g.add(parts.pupilL);
+   parts.pupilR=parts.pupilL.clone();parts.pupilR.position.x=.14;g.add(parts.pupilR);
   }
  }
  if(boss){
@@ -152,6 +174,8 @@ export function animateCharacter(model,dt,state={}){
   p.head.rotation.z=THREE.MathUtils.lerp(p.head.rotation.z,state.facing<0?.04:-.04,.08);
   p.scarf.rotation.z=Math.sin(u.t*12)*.08+(state.vx?-.08*state.facing:0);
   p.bun.rotation.z=Math.sin(u.t*8)*.04;
+  p.hairFringe.rotation.z=THREE.MathUtils.lerp(p.hairFringe.rotation.z,-.16+(state.vx||0)*-.006,.12);
+  if(p.cheek)p.cheek.scale.x=1+Math.sin(u.t*3)*.04;
 
   if(anim==='jump')p.head.rotation.z+=.05;
   if(anim==='fall')p.head.rotation.z-=.05;
@@ -208,6 +232,13 @@ export function animateCharacter(model,dt,state={}){
    p.body.scale.y=.12+.68*t;p.body.scale.x=1.25-.25*t;p.body.scale.z=1.25-.25*t;
   }
   if(p.ring)p.ring.rotation.z+=dt*1.8;
+  const pupilShift=THREE.MathUtils.clamp((state.vx||0)*.012,-.035,.035);
+  if(p.pupilL)p.pupilL.position.x=THREE.MathUtils.lerp(p.pupilL.position.x,-.14+pupilShift,.2);
+  if(p.pupilR)p.pupilR.position.x=THREE.MathUtils.lerp(p.pupilR.position.x,.14+pupilShift,.2);
+  }else if(u.kind==='slime'||u.kind==='bat'){
+  const pupilShift=THREE.MathUtils.clamp((state.vx||0)*.012,-.035,.035);
+  if(p.pupilL)p.pupilL.position.x=THREE.MathUtils.lerp(p.pupilL.position.x,-.14+pupilShift,.2);
+  if(p.pupilR)p.pupilR.position.x=THREE.MathUtils.lerp(p.pupilR.position.x,.14+pupilShift,.2);
  }else if(u.kind==='turret'){
   p.body.rotation.y+=dt*(state.alert?.35:.7);
   p.eye.scale.setScalar(1+Math.sin(u.t*7)*.12);

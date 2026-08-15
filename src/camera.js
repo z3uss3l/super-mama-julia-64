@@ -10,6 +10,10 @@ export class FollowCamera{
   this.desired.set(x+4.5+this.lookAhead,Math.max(3.8,y+3.5+vertical),12.5);
   this.camera.position.lerp(this.desired,1-Math.pow(.0008,dt));
   const s=this.shake>0?(Math.random()-.5)*this.shake:0;this.shake=Math.max(0,this.shake-dt*.7);
+  const speed=Math.min(1,Math.abs(vx)/8.6);
+  const targetFov=58+speed*4+(Math.abs(vy)>6?1.5:0);
+  this.camera.fov+= (targetFov-this.camera.fov)*(1-Math.exp(-4*dt));
+  this.camera.updateProjectionMatrix();
   this.target.set(x+3.2+this.lookAhead*.35,y+.8+vertical*.2,0);
   this.camera.lookAt(this.target.x+s,this.target.y+s,0);
  }
