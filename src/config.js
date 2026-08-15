@@ -1,6 +1,6 @@
 export const GAME={
   name:'Super Mama Julia 64',
-  version:'5.6.0',
+  version:'5.7.0',
   saveKey:'smj64-v5',
   gravity:-27,
   playerSpeed:8.6,
@@ -23,6 +23,20 @@ export const WORLDS=[
  {id:'neon',name:'Neonfabrik',sky:0x0c0922,ground:0x27205d,accent:0xff4be1,fog:0x30276b}
 ];
 
+
+export const STORY=[
+ {chapter:'PROLOG — Der Ruf des Löwen',intro:'Julia findet im Blumenhain eine Spur aus goldenen Pfoten. Jemand ruft aus dem Zauberwald.',outro:'Die Spur führt tiefer in den Wald.'},
+ {chapter:'I — Der Zauberwald',intro:'Im Zauberwald entdeckt Julia geheimnisvolle Löwenpilze. Einer pulsiert wie ein kleines Herz.',outro:'Julia spürt: Der Löwe ist kein Kostüm. Er gehört zu ihr.'},
+ {chapter:'II — Die Pilzprüfung',intro:'Die Waldwesen testen Julia. Zwischen Wurzeln und Nebel liegen weitere Pilze verborgen.',outro:'Der Löwengeist zeigt Julia den Weg zum Feuer.'},
+ {chapter:'III — Glut-Canyon',intro:'Die Spur führt in eine Welt aus Lava und Maschinen. Nur die Löwenkraft öffnet den sicheren Weg.',outro:'Hinter der Lava wartet das Eis.'},
+ {chapter:'IV — Eispalast',intro:'Im Eis findet Julia Pfotenabdrücke und ein Medaillon mit demselben Symbol wie ihr Pilz.',outro:'Das Medaillon zeigt den Weg zur Neonfabrik.'},
+ {chapter:'V — Neonfabrik',intro:'Die Fabrik produziert künstliche Kopien der Löwenkraft. Mama Prime will Julias Kraft kontrollieren.',outro:'Mama Prime flieht mit einem Fragment des Löwensiegels.'},
+ {chapter:'VI — Das Löwensiegel',intro:'Julia folgt dem Fragment. Die Pilze sind Teile eines uralten Schutzrituals.',outro:'Nur noch das Herzstück fehlt.'},
+ {chapter:'VII — Die letzte Spur',intro:'Am Rand der Fabrik findet Julia vier kleine Pfoten neben ihren eigenen.',outro:'Sie versteht: Stärke bedeutet Schutz.'},
+ {chapter:'VIII — Mama Prime',intro:'Die künstliche Löwenkraft erwacht. Mama Prime stellt sich Julia ein letztes Mal entgegen.',outro:'Das Siegel ist fast vollständig.'},
+ {chapter:'EPILOG — Super Mama',intro:'Julia setzt das Siegel ein. Der Löwengeist bleibt an ihrer Seite.',outro:'Die Welten sind gerettet. Und irgendwo wächst bereits der nächste goldene Pilz.'}
+];
+
 export const LEVELS=WORLDS.flatMap((w,wi)=>Array.from({length:3},(_,li)=>({
  id:wi*3+li,
  name:`${w.name} ${li+1}`,
@@ -33,6 +47,7 @@ export const LEVELS=WORLDS.flatMap((w,wi)=>Array.from({length:3},(_,li)=>({
  difficulty:1+wi*1.5+li*.7,
  questKind:li===0?'coins':li===1?'kills':'heart',
  questTarget:li===0?14:li===1?8:1,
+ story:STORY[Math.min(STORY.length-1,wi*2+li%2)],
  quest:li===0?'Sammle 14 Münzen':li===1?'Besiege 8 Gegner':'Behalte mindestens 1 Herz',
  boss:li===2
 })));

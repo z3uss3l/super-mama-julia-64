@@ -18,7 +18,7 @@ export class UI{
  setStats(s){this.q('#stats').textContent=`⭐ ${s.score} · 🪙 ${s.coins} · ❤️ ${s.lives} · 🔥 ${s.combo}`}
  setLevel(t){this.q('#level').textContent=t}
  setObjective(t){this.q('#objective').textContent=t}
- setAbilities(u){const e=this.q('#abilities');e.replaceChildren();for(const [icon,key] of [['↥','doubleJump'],['↯','dash'],['🛡','shield'],['⭐','starPower'],['🦁','lion']]){const s=document.createElement('span');s.className=`ability ${u[key]?'ready':'locked'}`;s.textContent=icon;s.title=key;e.appendChild(s)}}
+ setAbilities(u){const e=this.q('#abilities');e.replaceChildren();for(const [icon,key] of [['↥','doubleJump'],['↯','dash'],['🛡','shield'],['⭐','starPower'],['🦁','lion']]){const s=document.createElement('span');s.className=`ability ${u[key]?'ready':'locked'}`;s.textContent=icon;s.title=key==='lion'?'Löwenform':key;e.appendChild(s)}}
  setCombo(n){const e=this.q('#combo');e.textContent=n>1?`COMBO ×${n}`:'';e.classList.toggle('show',n>1)}
  setCheckpoint(on){this.q('#objective').dataset.checkpoint=on?'🚩':''}
  showBoss(name,hp,max){this.q('#boss').style.display='block';this.q('#bossName').textContent=`👹 ${name}`;this.q('#bossFill').style.width=`${Math.max(0,hp/max)*100}%`}

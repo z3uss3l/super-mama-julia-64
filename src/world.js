@@ -14,9 +14,18 @@ export class WorldRuntime{
    const m=meshBox(h.w,.12,4,new THREE.MeshStandardMaterial({color:0xff304f,emissive:0x550011,emissiveIntensity:.7}));m.position.set(h.x,-.28,.04);this.scene.add(m);this.objects.push(m);h.mesh=m;
   }
   for(const it of level.items){
-   const color={coin:0xffd43b,crystal:0x45d9ff,heart:0xff3b79,star:0xffffff,key:0x8b5cf6}[it.type]||0xffffff;
-   const geo=it.type==='coin'?new THREE.TorusGeometry(.19,.065,8,14):new THREE.OctahedronGeometry(.22);
-   const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.45,metalness:.08,emissive:color,emissiveIntensity:it.type==='star'?.35:0.04}));m.castShadow=true;m.position.set(it.x,it.y,it.z);this.scene.add(m);this.objects.push(m);
+   const color={coin:0xffd43b,crystal:0x45d9ff,heart:0xff3b79,star:0xffffff,key:0x8b5cf6,mushroom:0xff4b7d}[it.type]||0xffffff;
+   let geo;
+   if(it.type==='coin') geo=new THREE.TorusGeometry(.19,.065,8,14);
+   else if(it.type==='mushroom') geo=new THREE.SphereGeometry(.32,16,10);
+   else geo=new THREE.OctahedronGeometry(.22);
+   const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.45,metalness:.08,emissive:color,emissiveIntensity:(it.type==='star'||it.type==='mushroom')?.35:0.04}));
+   if(it.type==='mushroom'){
+    m.scale.set(1,.65,1);
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(.11,.14,.32,10),new THREE.MeshStandardMaterial({color:0xfff0c8,roughness:.65}));
+    stem.position.y=-.25;stem.castShadow=true;m.add(stem);
+   }
+   m.castShadow=true;m.position.set(it.x,it.y,it.z);this.scene.add(m);this.objects.push(m);
    this.items.push({...it,mesh:m,alive:true});
   }
   for(const e of level.enemies){

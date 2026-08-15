@@ -30,23 +30,23 @@ export function makePlayer(){
   parts.bun.position.set(-.27,1.55,-.02);
   g.add(parts.bun);
 
-  // Face sits toward the camera (+Z), so the model does not need a 90°/180°
-  // rotation to be readable.
-  parts.eyeL=new THREE.Mesh(new THREE.SphereGeometry(.045,10,8),S(0x15151a));
-  parts.eyeL.position.set(-.12,1.27,.355);
-  g.add(parts.eyeL);
+  // Deliberate side-profile face. Local +X is the forward direction;
+  // Game.js mirrors the complete model on X for left/right movement.
+  parts.eye=new THREE.Mesh(new THREE.SphereGeometry(.048,10,8),S(0x15151a));
+  parts.eye.position.set(.355,1.275,.055);
+  g.add(parts.eye);
 
-  parts.eyeR=parts.eyeL.clone();
-  parts.eyeR.position.x=.12;
-  g.add(parts.eyeR);
+  parts.brow=meshBox(.095,.022,.018,S(0x6d432d));
+  parts.brow.position.set(.355,1.34,.055);
+  g.add(parts.brow);
 
-  parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),M(0xe79b79));
-  parts.nose.scale.set(.8,.7,1.25);
-  parts.nose.position.set(0,1.20,.382);
+  parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.038,8,6),M(0xe79b79));
+  parts.nose.scale.set(1.25,.72,.72);
+  parts.nose.position.set(.382,1.205,.045);
   g.add(parts.nose);
 
-  parts.mouth=meshBox(.11,.025,.018,M(0x8f3e55));
-  parts.mouth.position.set(0,1.115,.375);
+  parts.mouth=meshBox(.018,.028,.105,M(0x8f3e55));
+  parts.mouth.position.set(.378,1.115,.045);
   g.add(parts.mouth);
 
   parts.armL=limb(.13,.48,.14,M(0xf6c7a5));

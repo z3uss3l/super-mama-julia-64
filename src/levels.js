@@ -47,6 +47,16 @@ export function buildLevel(index){
   const start=p.x-(count-1)*.45;
   addCoinLine(items,start,p.y+1.0,count,.9);
  }
+ // Story pickup: the golden lion mushroom triggers the transformation.
+ if(cfg.worldId==='forest' && cfg.index===3){
+  const mp=platforms[2];
+  items.push({type:'mushroom',x:mp.x,y:mp.y+1.15,z:0,story:'Der Löwenpilz'});
+ }
+ if(cfg.worldId==='forest' && cfg.index===4){
+  const mp=platforms[5];
+  items.push({type:'mushroom',x:mp.x,y:mp.y+1.15,z:0,story:'Der zweite Löwenpilz'});
+ }
+
  // Vertical challenge coins and utility pickups.
  for(let i=2;i<platforms.length-2;i+=4){
   const p=platforms[i];
