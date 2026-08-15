@@ -21,7 +21,7 @@ export class Game{
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
   this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
   this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;
-  this.bind();this.resize();addEventListener('resize',()=>this.resize());this.ui.setAbilities(this.state.save.unlocks);this.loop();
+  this.bind();this.resize();addEventListener('resize',()=>this.resize());if(!this.state.save.unlocks.doubleJump)this.state.save.unlocks.doubleJump=true;this.ui.setAbilities(this.state.save.unlocks);this.loop();
  }
  setupLighting(){
   const hemi=new THREE.HemisphereLight(0xffffff,0x273248,1.35);this.scene.add(hemi);
@@ -44,7 +44,7 @@ export class Game{
   const cp=this.state.checkpoint&&this.state.checkpoint.level===index?this.state.checkpoint:null;
   const spawnPlatform=this.level?.platforms?.[0];
   const spawnY=cp?.y??(spawnPlatform ? spawnPlatform.y+spawnPlatform.h/2+.02 : 1);
-  this.player={x:cp?.x??0,y:spawnY,vx:0,vy:0,inputAxis:0,maxSpeed:GAME.playerSpeed,accel:GAME.playerAccel,airAccel:GAME.playerAirAccel,friction:GAME.playerFriction,airFriction:GAME.playerAirFriction,facing:1,grounded:!cp&&!!spawnPlatform,jumps:0,inv:0,attack:0,dash:0,dashDirection:1,jumpBuffer:0,coyote:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0,coyote:0,jumpBuffer:0,flash:0};
+  this.player={x:cp?.x??0,y:spawnY,z:0,vx:0,vy:0,inputAxis:0,maxSpeed:GAME.playerSpeed,accel:GAME.playerAccel,airAccel:GAME.playerAirAccel,friction:GAME.playerFriction,airFriction:GAME.playerAirFriction,facing:1,grounded:!cp&&!!spawnPlatform,jumps:0,inv:0,attack:0,dash:0,dashDirection:1,jumpBuffer:0,coyote:0,shield:this.state.save.unlocks.shield?3:0,star:0,lion:!!this.state.save.unlocks.lion,contact:0,hitStop:0,flash:0};
   this.jumpHeldLast=false;this.playerModel=makePlayer();this.scene.add(this.playerModel);this.lionModel=makeLion();this.lionModel.visible=false;this.scene.add(this.lionModel);
   this.world.mount(this.level);if(this.level.boss)this.spawnBoss();
   this.state.quest={kind:this.level.cfg.questKind,target:this.level.cfg.questTarget,progress:0,done:false};
@@ -63,7 +63,7 @@ export class Game{
    return true;
   }
   if(this.state.save.unlocks.doubleJump&&p.jumps<2){
-   p.vy=GAME.jumpSpeed*.9;p.grounded=false;p.jumps++;p.jumpBuffer=0;this.audio.jump();
+   p.vy=GAME.jumpSpeed*.94;p.grounded=false;p.jumps++;p.jumpBuffer=0;this.audio.jump();
    this.particles.burst(this.playerModel.position,0x7de3ff,8,4);
    return true;
   }
@@ -163,15 +163,16 @@ export class Game{
   }
   p.attack=Math.max(0,p.attack-dt);p.inv=Math.max(0,p.inv-dt);p.contact=Math.max(0,p.contact-dt);p.dash=Math.max(0,p.dash-dt);p.flash=Math.max(0,p.flash-dt);
   if(p.y<-3)this.hurt(true);
-  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing<0?Math.PI:0;
+  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=0;
   const jumpStretch=p.grounded?1:1.05;
   const attackSquash=p.attack>0?.92:1;
   const landSquash=p.land>0?1-.12*(p.land/.12):1;
-  this.playerModel.scale.set(attackSquash*landSquash,1/jumpStretch/landSquash,jumpStretch);
+  const facingScale=p.facing<0?-1:1;
+  this.playerModel.scale.set(facingScale*attackSquash*landSquash,1/jumpStretch/landSquash,jumpStretch);
   animateCharacter(this.playerModel,dt,p);
   animateCharacter(this.lionModel,dt,p);
   this.playerModel.visible=p.inv<=0||Math.floor(p.inv*14)%2===0;
-  this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);
+  this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);this.lionModel.rotation.y=0;this.lionModel.scale.x=p.facing<0?-1:1;
   this.collect();
   if(p.star>0){
    p.star=Math.max(0,p.star-dt);

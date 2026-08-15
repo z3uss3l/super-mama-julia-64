@@ -6,21 +6,71 @@ export function meshBox(w,h,d,mat){return new THREE.Mesh(new THREE.BoxGeometry(w
 function limb(w,h,d,mat){const m=meshBox(w,h,d,mat);m.geometry.translate(0,-h/2,0);return m}
 
 export function makePlayer(){
- const g=new THREE.Group();
- const parts={};
- parts.body=meshBox(.58,.78,.45,M(0x376bd8));parts.body.position.y=.64;g.add(parts.body);
- parts.apron=meshBox(.64,.42,.47,M(0xffffff));parts.apron.position.set(0,.53,.25);g.add(parts.apron);
- parts.head=new THREE.Mesh(new THREE.SphereGeometry(.37,18,14),M(0xf6c7a5));parts.head.position.y=1.25;g.add(parts.head);
- parts.hair=new THREE.Mesh(new THREE.SphereGeometry(.43,18,14),M(0xf4c430));parts.hair.scale.set(1,.96,1.08);parts.hair.position.y=1.34;g.add(parts.hair);
- parts.bun=new THREE.Mesh(new THREE.SphereGeometry(.18,14,10),M(0xf4c430));parts.bun.position.set(-.27,1.55,0);g.add(parts.bun);
- parts.eyeL=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),S(0x15151a));parts.eyeL.position.set(-.12,1.24,.36);g.add(parts.eyeL);
- parts.eyeR=parts.eyeL.clone();parts.eyeR.position.x=.12;g.add(parts.eyeR);
- parts.armL=limb(.13,.48,.14,M(0xf6c7a5));parts.armL.position.set(-.39,.73,0);g.add(parts.armL);
- parts.armR=limb(.13,.48,.14,M(0xf6c7a5));parts.armR.position.set(.39,.73,0);g.add(parts.armR);
- parts.legL=limb(.17,.42,.18,M(0x29202b));parts.legL.position.set(-.18,.37,.05);g.add(parts.legL);
- parts.legR=limb(.17,.42,.18,M(0x29202b));parts.legR.position.set(.18,.37,.05);g.add(parts.legR);
- parts.scarf=meshBox(.62,.08,.5,M(0xff4b7d));parts.scarf.position.set(0,.91,.27);g.add(parts.scarf);
- g.userData={kind:'player',parts,height:1.72,t:0,lastGrounded:false,land:0};return g;
+  const g=new THREE.Group();
+  const parts={};
+
+  parts.body=meshBox(.58,.78,.45,M(0x376bd8));
+  parts.body.position.y=.64;
+  g.add(parts.body);
+
+  parts.apron=meshBox(.64,.42,.47,M(0xffffff));
+  parts.apron.position.set(0,.53,.25);
+  g.add(parts.apron);
+
+  parts.head=new THREE.Mesh(new THREE.SphereGeometry(.37,20,16),M(0xf6c7a5));
+  parts.head.position.set(0,1.25,.02);
+  g.add(parts.head);
+
+  parts.hair=new THREE.Mesh(new THREE.SphereGeometry(.43,20,16),M(0xf4c430));
+  parts.hair.scale.set(1,.86,1.08);
+  parts.hair.position.set(0,1.34,-.055);
+  g.add(parts.hair);
+
+  parts.bun=new THREE.Mesh(new THREE.SphereGeometry(.18,14,10),M(0xf4c430));
+  parts.bun.position.set(-.27,1.55,-.02);
+  g.add(parts.bun);
+
+  // Face sits toward the camera (+Z), so the model does not need a 90°/180°
+  // rotation to be readable.
+  parts.eyeL=new THREE.Mesh(new THREE.SphereGeometry(.045,10,8),S(0x15151a));
+  parts.eyeL.position.set(-.12,1.27,.355);
+  g.add(parts.eyeL);
+
+  parts.eyeR=parts.eyeL.clone();
+  parts.eyeR.position.x=.12;
+  g.add(parts.eyeR);
+
+  parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),M(0xe79b79));
+  parts.nose.scale.set(.8,.7,1.25);
+  parts.nose.position.set(0,1.20,.382);
+  g.add(parts.nose);
+
+  parts.mouth=meshBox(.11,.025,.018,M(0x8f3e55));
+  parts.mouth.position.set(0,1.115,.375);
+  g.add(parts.mouth);
+
+  parts.armL=limb(.13,.48,.14,M(0xf6c7a5));
+  parts.armL.position.set(-.39,.73,.03);
+  g.add(parts.armL);
+
+  parts.armR=limb(.13,.48,.14,M(0xf6c7a5));
+  parts.armR.position.set(.39,.73,.03);
+  g.add(parts.armR);
+
+  parts.legL=limb(.17,.42,.18,M(0x29202b));
+  parts.legL.position.set(-.18,.37,.05);
+  g.add(parts.legL);
+
+  parts.legR=limb(.17,.42,.18,M(0x29202b));
+  parts.legR.position.set(.18,.37,.05);
+  g.add(parts.legR);
+
+  parts.scarf=meshBox(.62,.08,.5,M(0xff4b7d));
+  parts.scarf.position.set(0,.91,.27);
+  g.add(parts.scarf);
+
+  g.userData={kind:'player',parts,height:1.72,t:0,lastGrounded:false,land:0};
+  return g;
 }
 
 export function makeLion(){
