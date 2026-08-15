@@ -4,7 +4,25 @@ import {ENEMY_STATS} from './config.js';
 
 export class WorldRuntime{
  constructor(scene){this.scene=scene;this.objects=[];this.enemies=[];this.items=[];this.level=null;this.boss=null;this.goal=null;this.goalPulse=0}
- clear(){for(const o of this.objects)this.scene.remove(o);this.objects=[];this.enemies=[];this.items=[];this.boss=null;this.goal=null;this.level=null}
+ clear(){
+  for(const o of this.objects){
+   this.scene.remove(o);
+   this.disposeObject(o);
+  }
+  this.objects=[];
+  this.enemies=[];
+  this.items=[];
+  this.boss=null;
+  this.goal=null;
+  this.level=null;
+ }
+ disposeObject(root){
+  root.traverse?.(node=>{
+   if(node.geometry?.dispose)node.geometry.dispose();
+   const materials=Array.isArray(node.material)?node.material:[node.material];
+   for(const mat of materials)if(mat?.dispose)mat.dispose();
+  });
+ }
  mount(level){
   this.clear();this.level=level;
   for(const p of level.platforms){

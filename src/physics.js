@@ -214,9 +214,7 @@ function step(player, platforms, dt) {
     const p = platformBounds(platform);
     if (!overlapsZ(player, platform)) continue;
 
-      // Use the real player AABB for side collisions. The old inset
-    // body test could miss a collision when the player approached a
-    // platform at an edge or while the body was partly above it.
+      // Use the real player AABB for robust side-wall detection.
     const playerBottom = player.y;
     const playerTop = player.y + ph;
 
@@ -370,14 +368,51 @@ export function getMovementState(player) {
 }
 
 
-/**
- * Deterministic physics regression checks. These are deliberately small and
- * dependency-free so they can run in CI without WebGL.
- */
 
 /**
- * Deterministic physics regression checks. These are deliberately small and
- * dependency-free so they can run in CI without WebGL.
+ * Swept vertical stomp test.
+ *
+ * The important part is that we test the whole segment travelled by the
+ * player's feet during this frame, rather than requiring the feet to be
+ * within a tiny tolerance at the two sampled positions. Fast downward
+ * movement otherwise makes small/fast enemies (especially the runner)
+ * intermittently non-stompable.
+ */
+export function checkStompCollision(
+  previousBottom,
+  currentBottom,
+  playerX,
+  playerHalfWidth,
+  enemyX,
+  enemyTop,
+  enemyHalfWidth,
+  tolerance = 0.24
+) {
+  const previous = Number(previousBottom);
+  const current = Number(currentBottom);
+  if (!Number.isFinite(previous) || !Number.isFinite(current)) return false;
+
+  // Only a downward crossing counts. A player rising through an enemy cannot
+  // accidentally trigger a stomp.
+  if (previous < current) return false;
+
+  const crossedTop =
+    previous >= enemyTop - tolerance &&
+    current <= enemyTop + tolerance;
+
+  if (!crossedTop) return false;
+
+  const playerLeft = playerX - playerHalfWidth;
+  const playerRight = playerX + playerHalfWidth;
+  const enemyLeft = enemyX - enemyHalfWidth;
+  const enemyRight = enemyX + enemyHalfWidth;
+
+  return playerRight > enemyLeft && playerLeft < enemyRight;
+}
+
+/**
+ * Deterministic physics regression checks.
+ * Kept dependency-free so they can run in CI without WebGL.
  */
 export function runPhysicsRegressionTests() {
   const platform = {x: 5, y: 0.5, z: 0, width: 2, height: 1, depth: 4};
@@ -403,5 +438,18 @@ export function runPhysicsRegressionTests() {
   resolvePlayer(c,[platform],1/60);
   const standingStable = Math.abs(c.x-5)<0.001;
 
-  return {blockedRight, blockedLeft, standingStable, ok:blockedRight&&blockedLeft&&standingStable};
+  // Purple runner: simulate a fast downward frame crossing its top.
+  // Runner geometry is a 0.43-radius sphere scaled to 80% vertically.
+  const runnerTop = 1 + 0.43 * 0.8;
+  const runnerStomp = checkStompCollision(2.05, 0.98, 5, 0.34, 5, runnerTop, 0.43);
+  const runnerMissFromBelow = !checkStompCollision(0.80, 0.95, 5, 0.34, 5, runnerTop, 0.43);
+
+  return {
+    blockedRight,
+    blockedLeft,
+    standingStable,
+    runnerStomp,
+    runnerMissFromBelow,
+    ok:blockedRight&&blockedLeft&&standingStable&&runnerStomp&&runnerMissFromBelow
+  };
 }

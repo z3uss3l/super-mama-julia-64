@@ -22,6 +22,7 @@ export class Particles{
   p.material.color.setHex(color);
   p.material.opacity=.95;
   p.scale.setScalar(size);
+  p.userData.baseSize=size;
   p.userData.life=.55;
   p.userData.maxLife=.55;
   return p;
@@ -56,7 +57,9 @@ export class Particles{
    p.rotation.y+=safeDt*9;
    const alpha=Math.max(0,u.life/u.maxLife);
    p.material.opacity=alpha;
-   p.scale.setScalar(Math.max(.01,alpha)*(p.scale.x||.07));
+   // Never derive the next frame's size from the already-scaled mesh.
+   // The previous implementation compounded the scale every frame.
+   p.scale.setScalar(Math.max(.01,alpha)*u.baseSize);
    if(u.life<=0){
     p.visible=false;
     this.pool.push(p);

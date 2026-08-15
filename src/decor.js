@@ -29,5 +29,17 @@ export class Decor{
    m.position.y+=Math.sin(this.t*.45+m.userData.phase)*dt*.04;
   }
  }
- clear(){this.scene.remove(this.group)}
+ clear(){
+  this.scene.remove(this.group);
+  for(const mesh of this.items){
+   mesh.geometry?.dispose?.();
+  }
+  this.items.length=0;
+  // accent/far are shared materials created by this Decor instance.
+  this.group.traverse?.(node=>{
+   const materials=Array.isArray(node.material)?node.material:[node.material];
+   for(const mat of materials)if(mat?.dispose)mat.dispose();
+  });
+  this.group.clear?.();
+}
 }

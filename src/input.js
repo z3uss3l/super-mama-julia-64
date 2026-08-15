@@ -58,6 +58,10 @@ export class Input {
     ]) this.touch(id, type);
 
     this.sync();
+    addEventListener('blur', () => this.releaseAll());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.releaseAll();
+    });
   }
 
   sync() {
@@ -97,6 +101,13 @@ export class Input {
     el.addEventListener('pointerup', release, { passive: false });
     el.addEventListener('pointercancel', release, { passive: false });
     el.addEventListener('lostpointercapture', release, { passive: false });
+  }
+
+  releaseAll() {
+    this.keys.clear();
+    this.touchKeys.clear();
+    this.sync();
+    this.jumpReleased = true;
   }
 
   consume() {

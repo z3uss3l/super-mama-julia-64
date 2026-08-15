@@ -176,6 +176,12 @@ export function animateCharacter(model,dt,state={}){
   p.bun.rotation.z=Math.sin(u.t*8)*.04;
   p.hairFringe.rotation.z=THREE.MathUtils.lerp(p.hairFringe.rotation.z,-.16+(state.vx||0)*-.006,.12);
   if(p.cheek)p.cheek.scale.x=1+Math.sin(u.t*3)*.04;
+  // Deterministic soft blink: short closed-eye interval without timers.
+  const blinkCycle=(u.t+0.8)%3.7;
+  const blink=blinkCycle>3.48&&blinkCycle<3.58;
+  const eyeScale=blink?.18:1;
+  p.eye.scale.y=THREE.MathUtils.lerp(p.eye.scale.y,eyeScale,.45);
+  p.brow.position.y=1.345+(blink?.012:0);
 
   if(anim==='jump')p.head.rotation.z+=.05;
   if(anim==='fall')p.head.rotation.z-=.05;
