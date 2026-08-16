@@ -15,7 +15,7 @@ export class FollowCamera{
   const vertical=THREE.MathUtils.clamp(vy*.06,-.7,.7);
   this.lookAhead += (lead-this.lookAhead)*(1-Math.exp(-5.8*dt));
   this.lookY += (vertical-this.lookY)*(1-Math.exp(-4.5*dt));
-  this.desired.set(x+4.5+this.lookAhead,Math.max(3.8,y+3.5+this.lookY),12.5);
+  this.desired.set(x+this.lookAhead,Math.max(3.8,y+3.5+this.lookY),12.5);
   this.camera.position.lerp(this.desired,1-Math.pow(.0008,dt));
   const s=this.shake>0?(Math.random()-.5)*this.shake:0;this.shake=Math.max(0,this.shake-dt*.7);
   const speed=Math.min(1,Math.abs(vx)/8.6);
@@ -27,7 +27,7 @@ export class FollowCamera{
    this.camera.fov=nextFov;
    this.camera.updateProjectionMatrix();
   }
-  this.target.set(x+3.2+this.lookAhead*.35,y+.8+vertical*.2,0);
+  this.target.set(x+this.lookAhead*.35,y+.8+vertical*.2,0);
   this.camera.lookAt(this.target.x+s,this.target.y+s,0);
  }
 }

@@ -542,7 +542,7 @@ export class Game{
    else if(p.attack>0)p.anim='attack';
   }
   if(p.y<-3)this.hurt(true);
-  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing>0?-.48:.48;
+  this.playerModel.position.set(p.x,p.y,0);
   const jumpStretch=p.grounded?1:1.05;
   const attackSquash=p.attack>0?.92:1;
   const landSquash=p.land>0?1-.12*(p.land/.12):1;
@@ -550,7 +550,7 @@ export class Game{
   animateCharacter(this.playerModel,dt,p);
   animateCharacter(this.lionModel,dt,p);
   this.playerModel.visible=!p.lion&&(p.inv<=0||Math.floor(p.inv*14)%2===0);
-  this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);this.lionModel.rotation.y=p.facing>0?-.16:.16;this.lionModel.scale.x=p.facing<0?-1:1;
+  this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);
   if(p.transform>0){
    const t=1-p.transform/.90;
    const pulse=1+Math.sin(t*Math.PI)*.18;
