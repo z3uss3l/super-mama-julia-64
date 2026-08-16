@@ -444,12 +444,23 @@ export function runPhysicsRegressionTests() {
   const runnerStomp = checkStompCollision(2.05, 0.98, 5, 0.34, 5, runnerTop, 0.43);
   const runnerMissFromBelow = !checkStompCollision(0.80, 0.95, 5, 0.34, 5, runnerTop, 0.43);
 
+  const fastFallStomp = checkStompCollision(3.8, 0.2, 5, 0.34, 5, runnerTop, 0.43, 0.28);
+  const risingNotStomp = !checkStompCollision(0.2, 3.8, 5, 0.34, 5, runnerTop, 0.43, 0.28);
+  const edgeStomp = checkStompCollision(2.0, 0.9, 5.38, 0.34, 5, runnerTop, 0.43, 0.24);
+  const horizontalMiss = !checkStompCollision(2.0, 0.9, 5.82, 0.34, 5, runnerTop, 0.43, 0.24);
+  const lowPassNotStomp = !checkStompCollision(0.80, 0.15, 5, 0.34, 5, runnerTop, 0.43, 0.24);
+
   return {
     blockedRight,
     blockedLeft,
     standingStable,
     runnerStomp,
     runnerMissFromBelow,
-    ok:blockedRight&&blockedLeft&&standingStable&&runnerStomp&&runnerMissFromBelow
+    fastFallStomp,
+    risingNotStomp,
+    edgeStomp,
+    horizontalMiss,
+    lowPassNotStomp,
+    ok:blockedRight&&blockedLeft&&standingStable&&runnerStomp&&runnerMissFromBelow&&fastFallStomp&&risingNotStomp&&edgeStomp&&horizontalMiss&&lowPassNotStomp
   };
 }
