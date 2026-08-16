@@ -117,17 +117,20 @@ export function buildLevel(index){
  // transformation mechanic of the Zauberwald. Each forest level gets one
  // deliberately reachable mushroom; the first one transforms Julia.
  if(cfg.worldId==='forest'){
-  const mushroomIndex=cfg.index===3?2:cfg.index===4?5:3;
-  const mp=platforms[Math.min(mushroomIndex,platforms.length-2)];
+  const lionRoute=platforms.filter(p=>p.storyRoute==='lion-path');
+  const mp=cfg.index===3?(lionRoute.find(p=>p.x>=32)||lionRoute[1]):
+           cfg.index===4?(lionRoute.find(p=>p.x>=60)||lionRoute.at(-2)):
+           (lionRoute.at(-1)||platforms[5]);
   items.push({
    type:'mushroom',
    x:mp.x,
-   y:mp.y+1.18,
-   z:0,
+   y:mp.y+mp.h/2+1.05,
+   z:.15,
    story:cfg.index===3?'Der erste Löwenpilz':
          cfg.index===4?'Der zweite Löwenpilz':'Der goldene Löwenpilz',
    transform:true
   });
+  setpieces.push({type:'lionMushroomBeacon',x:mp.x,y:mp.y+mp.h/2});
  }
 
  // Tiny deterministic easter eggs: optional and deliberately off the main line.

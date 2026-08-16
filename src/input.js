@@ -9,6 +9,7 @@ export class Input {
     this.jumpPressed = false;
     this.jumpReleased = false;
     this.actionPressed = false;
+    this.throwPressed = false;
     this.dashPressed = false;
 
     this.keys = new Set();
@@ -32,6 +33,7 @@ export class Input {
 
       if (['Space','ArrowUp','KeyW'].includes(code)) this.jumpPressed = true;
       if (['KeyE','KeyX'].includes(code)) this.actionPressed = true;
+       if (['KeyQ','KeyR'].includes(code)) this.throwPressed = true;
       if (['ShiftLeft','ShiftRight','KeyF'].includes(code)) this.dashPressed = true;
 
       this.keys.add(code);
@@ -54,6 +56,7 @@ export class Input {
       ['right', 'right'],
       ['jump', 'jump'],
       ['action', 'action'],
+      ['throw', 'throw'],
       ['dash', 'dash']
     ]) this.touch(id, type);
 
@@ -83,6 +86,7 @@ export class Input {
       if (!this.touchKeys.has(type)) {
         if (type === 'jump') this.jumpPressed = true;
         if (type === 'action') this.actionPressed = true;
+        if (type === 'throw') this.throwPressed = true;
         if (type === 'dash') this.dashPressed = true;
       }
 
@@ -114,6 +118,7 @@ export class Input {
     this.jumpPressed = false;
     this.jumpReleased = false;
     this.actionPressed = false;
+    this.throwPressed = false;
     this.dashPressed = false;
   }
 }

@@ -55,6 +55,28 @@ export class Particles{
   this.scene.add(ring);
   this.active.push(ring);
  }
+ glow(pos,color=0xffd43b,size=1.0,duration=.34){
+  if(!pos||!this.scene)return;
+  const geo=new THREE.SphereGeometry(.16,12,8);
+  const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.72,blending:THREE.AdditiveBlending,depthWrite:false});
+  const g=new THREE.Mesh(geo,mat);
+  g.position.copy(pos);
+  g.userData={ephemeral:true,glow:true,life:duration,maxLife:duration,start:size};
+  g.scale.setScalar(.35);
+  this.scene.add(g);this.active.push(g);
+ }
+ trail(pos,color=0xffd43b,count=3){
+  if(!pos)return;
+  const available=Math.max(0,this.maxActive-this.active.length);
+  for(let i=0;i<Math.min(count,available);i++){
+   const p=this._acquire(color,.025+Math.random()*.035);
+   p.position.set(pos.x+(Math.random()-.5)*.18,pos.y+(Math.random()-.5)*.18,pos.z+(Math.random()-.5)*.12);
+   p.userData.v.set((Math.random()-.5)*.5,-.15-Math.random()*.5,(Math.random()-.5)*.25);
+   p.userData.life=.14+Math.random()*.12;p.userData.maxLife=p.userData.life;
+   this.active.push(p);
+  }
+ }
+
  sparkle(pos,color=0xffd43b,count=8,speed=2.8){
   this.burst(pos,color,count,speed);
   if(this.active.length<this.maxActive)this.shockwave(pos,color,1.25,.28);
@@ -68,10 +90,17 @@ export class Particles{
    if(u.ephemeral){
     u.life-=safeDt;
     const t=Math.max(0,1-u.life/u.maxLife);
-    const s=.35+t*u.start;
-    p.scale.set(s,s,s);
-    p.material.opacity=Math.max(0,1-t);
-    p.rotation.z+=safeDt*2.5;
+    if(u.glow){
+     const s=.35+t*u.start*1.9;
+     p.scale.set(s,s,s);
+     p.material.opacity=Math.max(0,(1-t)*.72);
+     p.rotation.y+=safeDt*2.2;
+    }else{
+     const s=.35+t*u.start;
+     p.scale.set(s,s,s);
+     p.material.opacity=Math.max(0,1-t);
+     p.rotation.z+=safeDt*2.5;
+    }
     if(u.life<=0){
      this.scene.remove(p);p.geometry.dispose();p.material.dispose();
      this.active.splice(i,1);

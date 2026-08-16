@@ -33,13 +33,13 @@ export class WorldRuntime{
    const m=meshBox(h.w,.12,4,new THREE.MeshStandardMaterial({color:0xff304f,emissive:0x550011,emissiveIntensity:.7}));m.position.set(h.x,-.28,.04);this.scene.add(m);this.objects.push(m);h.mesh=m;
   }
   for(const it of level.items){
-   const color={coin:0xffd43b,crystal:0x45d9ff,heart:0xff3b79,star:0xffffff,key:0x8b5cf6,mushroom:0xff4b7d,relic:0xff66ff}[it.type]||0xffffff;
+   const color={coin:0xffd43b,crystal:0x45d9ff,heart:0xff3b79,star:0xffffff,key:0x8b5cf6,mushroom:0xff7a2f,relic:0xff66ff}[it.type]||0xffffff;
    let geo;
    if(it.type==='coin') geo=new THREE.TorusGeometry(.19,.065,8,14);
    else if(it.type==='relic') geo=new THREE.DodecahedronGeometry(.25,1);
    else if(it.type==='mushroom') geo=new THREE.SphereGeometry(.32,16,10);
    else geo=new THREE.OctahedronGeometry(.22);
-   const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.45,metalness:.08,emissive:color,emissiveIntensity:(it.type==='star'||it.type==='mushroom')?.35:0.04}));
+   const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.45,metalness:.08,emissive:color,emissiveIntensity:(it.type==='star'||it.type==='mushroom')?.85:0.04}));
    if(it.type==='mushroom'){
     // Distinctive Mario-like silhouette without using external assets:
     // cap + stem + six cream spots + warm emissive glow.
@@ -109,6 +109,23 @@ export class WorldRuntime{
     g.position.set(s.x,s.y,0);g.userData={kind:'landmark',phase:s.phase||0};
     this.scene.add(g);this.objects.push(g);
    }
+   if(s.type==='lionMushroomBeacon'){
+    const g=new THREE.Group();
+    const accent=0xffd43b;
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(.035,.16,4.8,10),
+      new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.14,blending:THREE.AdditiveBlending,depthWrite:false}));
+    beam.position.y=2.25;g.add(beam);
+    for(const [r,y] of [[.72,.15],[.92,1.0],[.62,2.0]]){
+     const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.025,8,28),
+      new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false}));
+     ring.rotation.x=Math.PI/2;ring.position.y=y;g.add(ring);
+    }
+    const core=new THREE.Mesh(new THREE.IcosahedronGeometry(.20,1),
+      new THREE.MeshStandardMaterial({color:0xfff3b0,emissive:accent,emissiveIntensity:2.5}));
+    core.position.y=.35;g.add(core);
+    g.position.set(s.x,s.y,0);g.userData={kind:'lionMushroomBeacon',phase:Math.random()*Math.PI*2};
+    this.scene.add(g);this.objects.push(g);
+   }
    if(s.type==='storyGate'){
     const g=new THREE.Group();
     const left=meshBox(.34,2.6,.38,new THREE.MeshStandardMaterial({color:level.world.accent,emissive:level.world.accent,emissiveIntensity:.35}));
@@ -135,6 +152,17 @@ export class WorldRuntime{
    }
   }
   for(const o of this.objects){
+   if(o.userData?.kind==='lionMushroomBeacon'){
+    const t=performance.now()*.001+(o.userData.phase||0);
+    o.rotation.y+=dt*.35;
+    for(let i=1;i<o.children.length;i++){
+     const r=o.children[i];
+     r.rotation.z+=dt*(.9+i*.35);
+     r.scale.setScalar(1+Math.sin(t*(2+i*.7))*.10);
+    }
+    if(o.children[0])o.children[0].material.opacity=.10+.05*(.5+.5*Math.sin(t*3));
+    if(o.children[4])o.children[4].rotation.x+=dt*1.7;
+   }
    if(o.userData?.kind==='landmark'){
     const t=performance.now()*.001+(o.userData.phase||0);
     o.rotation.y+=dt*.25;
