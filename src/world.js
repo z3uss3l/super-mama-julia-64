@@ -85,7 +85,7 @@ export class WorldRuntime{
     const d=Math.abs((pl.y+pl.h*.5)-e.y);
     if(d<bestDist){bestDist=d;support=pl;}
    }
-   this.enemies.push({...e,mesh:m,hp:st.hp,maxHp:st.hp,alive:true,phase:Math.random()*6,hitFlash:0,hitAnim:0,fire:0,ai:'patrol',aiTimer:0,attackTimer:0,recoil:0,direction:1,supportPlatform:support});
+   this.enemies.push({...e,mesh:m,hp:st.hp,maxHp:st.hp,alive:true,phase:Math.random()*6,hitFlash:0,hitAnim:0,fire:0,ai:'patrol',aiTimer:0,attackTimer:0,recoil:0,direction:1,supportPlatform:support,prevX:e.x,stompHalfWidth:e.type==='bat'?.52:e.type==='runner'?.46:.46,stompHalfHeight:e.type==='turret'?.45:e.type==='runner'?.344:e.type==='bat'?.50:.345});
   }
   for(const s of (level.setpieces||[])){
    if(s.type==='landmark'){

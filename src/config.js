@@ -1,6 +1,6 @@
 export const GAME={
   name:'Super Mama Julia 64',
-  version:'8.0.0',
+  version:'8.2.0',
   saveKey:'smj64-v5',
   gravity:-27,
   fallGravity:-31.5,

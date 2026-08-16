@@ -13,6 +13,12 @@ import {CinematicDirector} from './cinematics.js';
 import {Progression} from './progression.js';
 import {Decor} from './decor.js';
 
+function checkStompHorizontalSweep(px0,px1,pw,ex0,ex1,ew){
+ const pMin=Math.min(px0,px1)-pw,pMax=Math.max(px0,px1)+pw;
+ const eMin=Math.min(ex0,ex1)-ew,eMax=Math.max(ex0,ex1)+ew;
+ return pMax>eMin&&pMin<eMax;
+}
+
 export class Game{
  constructor(ui){
   this.ui=ui;this.state=new RuntimeState();this.input=new Input();this.audio=new AudioManager();
@@ -104,7 +110,7 @@ export class Game{
   }
  }
  spawnBoss(){const b=this.level.boss;this.world.addBoss(b);this.boss=this.world.boss;this.audio.boss();this.ui.showBoss(b.stats.name,b.hp,b.hp)}
- togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V8.0.0')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
+ togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V8.2.0')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
   if(!p)return false;
@@ -380,13 +386,8 @@ export class Game{
    }
 
    const postDist=Math.abs(p.x-e.mesh.position.x);
-   const enemyHalfHeight =
-    e.type==='turret' ? .45 :
-    e.type==='runner' ? .344 :
-    e.type==='bat' ? .50 : .345;
-   const enemyHalfWidth =
-    e.type==='bat' ? .52 :
-    e.type==='runner' ? .46 : .46;
+   const enemyHalfHeight=e.stompHalfHeight ?? (e.type==='turret'?.45:e.type==='runner'?.344:e.type==='bat'?.50:.345);
+   const enemyHalfWidth=e.stompHalfWidth ?? (e.type==='bat'?.52:e.type==='runner'?.46:.46);
    const enemyTop=e.mesh.position.y+enemyHalfHeight;
 
    /*
@@ -400,10 +401,8 @@ export class Game{
     */
    const descending=p.wasDescending===true;
    const relativeDownward=(p.vy??0)<=0.75;
-   const verticalStompBand=p.y>=enemyTop-.34&&p.y<=enemyTop+.26;
-   const horizontalStompOverlap=
-    p.x+.36>e.mesh.position.x-enemyHalfWidth &&
-    p.x-.36<e.mesh.position.x+enemyHalfWidth;
+   const verticalStompBand=p.y>=e.mesh.position.y+.10&&p.y<=enemyTop+.55;
+   const horizontalStompOverlap=checkStompHorizontalSweep(p.stompPrevX??p.x,p.x,.42,e.prevX??e.mesh.position.x,e.mesh.position.x,enemyHalfWidth+.08);
 
    if(descending&&relativeDownward&&verticalStompBand&&horizontalStompOverlap){
     this.stompEnemy(e);
@@ -411,6 +410,7 @@ export class Game{
    }
 
    if(p.stompGrace<=0&&p.contact<=0&&postDist<st.contactRange&&Math.abs(e.mesh.position.y-p.y)<st.contactHeight){
+    if(descending&&relativeDownward&&horizontalStompOverlap&&verticalStompBand){ this.stompEnemy(e); continue; }
     this.hurt();p.contact=.8;
    }
   }
@@ -490,8 +490,9 @@ export class Game{
   p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
   const wasGrounded=p.grounded;
   const stompPrevY=p.y;
+  const stompPrevX=p.x;
   const stompPrevVy=p.vy;
-  p.wasDescending=stompPrevVy < -0.05;
+  p.wasDescending=stompPrevVy < -0.05;p.stompPrevX=stompPrevX;p.stompPrevY=stompPrevY;
   const gravity=p.vy>0
    ?(this.input.jump?GAME.jumpHoldGravity:GAME.gravity)
    :GAME.fallGravity;
@@ -508,26 +509,13 @@ export class Game{
    for(const e of this.world.enemies){
     if(!e.alive)continue;
 
-    const enemyHalfHeight =
-      e.type==='turret' ? .45 :
-      e.type==='runner' ? .344 :
-      e.type==='bat' ? .50 : .345;
-
-    const enemyHalfWidth =
-      e.type==='bat' ? .52 :
-      e.type==='runner' ? .43 : .43;
-
+    const enemyHalfHeight=e.stompHalfHeight ?? (e.type==='turret'?.45:e.type==='runner'?.344:e.type==='bat'?.50:.345);
+    const enemyHalfWidth=e.stompHalfWidth ?? (e.type==='bat'?.52:e.type==='runner'?.43:.43);
     const enemyTop=e.mesh.position.y+enemyHalfHeight;
+    const xHit=checkStompHorizontalSweep(stompPrevX,p.x,.39,e.prevX??e.mesh.position.x,e.mesh.position.x,enemyHalfWidth);
 
-    if(checkStompCollision(
-      stompPrevY,
-      p.y,
-      p.x,
-      .34,
-      e.mesh.position.x,
-      enemyTop,
-      enemyHalfWidth,
-      .24
+    if(xHit&&checkStompCollision(
+      stompPrevY,p.y,p.x,.39,e.mesh.position.x,enemyTop,enemyHalfWidth,.42
     )){
       this.stompEnemy(e);
       break;
@@ -554,12 +542,11 @@ export class Game{
    else if(p.attack>0)p.anim='attack';
   }
   if(p.y<-3)this.hurt(true);
-  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing>0?-.22:.22;
+  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing>0?-.48:.48;
   const jumpStretch=p.grounded?1:1.05;
   const attackSquash=p.attack>0?.92:1;
   const landSquash=p.land>0?1-.12*(p.land/.12):1;
-  const facingScale=p.facing<0?-1:1;
-  this.playerModel.scale.set(facingScale*attackSquash*landSquash,1/jumpStretch/landSquash,jumpStretch);
+  this.playerModel.scale.set(attackSquash*landSquash,1/jumpStretch/landSquash,jumpStretch);
   animateCharacter(this.playerModel,dt,p);
   animateCharacter(this.lionModel,dt,p);
   this.playerModel.visible=!p.lion&&(p.inv<=0||Math.floor(p.inv*14)%2===0);
@@ -616,9 +603,9 @@ export class Game{
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');
-  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …` ,'V8.0.0');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
+  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …` ,'V8.2.0');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
  }
- gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V8.0.0')}
- win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}` ,'V8.0.0');this.audio.win()}
+ gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V8.2.0')}
+ win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}` ,'V8.2.0');this.audio.win()}
  loop(){requestAnimationFrame(()=>this.loop());const dt=Math.min(.033,this.clock.getDelta());this.update(dt);this.renderer.render(this.scene,this.camera)}
 }

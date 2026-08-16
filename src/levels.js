@@ -149,7 +149,7 @@ export function buildLevel(index){
   const role=i%6;
   if(role===1)addEnemy(enemies,'slime',p.x,p.y+1);
   if(role===2)addEnemy(enemies,'runner',p.x+p.w*.35,p.y+1);
-  if(role===3)addEnemy(enemies,'bat',p.x+p.w*.5,p.y+1.7);
+  if(role===3)addEnemy(enemies,'bat',p.x+p.w*.5,p.y+1.42);
   if(role===4)addEnemy(enemies,'turret',p.x+p.w*.7,p.y+1);
   if(role===5){addEnemy(enemies,'slime',p.x-p.w*.2,p.y+1);addEnemy(enemies,'bat',p.x+p.w*.25,p.y+1.7)}
  }
@@ -158,7 +158,7 @@ export function buildLevel(index){
  let cursor=2;
  while(enemies.length<minimum){
   const p=platforms[cursor++%(platforms.length-2)+1];
-  addEnemy(enemies,['slime','runner','bat'][enemies.length%3],p.x,p.y+1);
+  addEnemy(enemies,['slime','runner','bat'][enemies.length%3],p.x,p.y+(enemies.length%3===2?1.42:1));
  }
 
  // Explicit hazard gaps; landing surfaces remain wide enough for the collision model.

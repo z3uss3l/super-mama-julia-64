@@ -9,86 +9,67 @@ export function makePlayer(){
   const g=new THREE.Group();
   const parts={};
 
-  parts.body=meshBox(.58,.78,.45,M(0x376bd8));
-  parts.body.position.y=.64;
-  g.add(parts.body);
+  // Julia V8.2: stylized 3D character based on the supplied visual reference:
+  // blonde hair, blue/grey eyes, black top, pink apron, jeans and pink shoes.
+  // The face is built from separate features so it remains readable in 3/4
+  // view and does not deform when Julia changes direction.
+  const skin=M(0xf2c4a5,.72), hairMat=M(0xc99b62,.58), hairHi=M(0xe3b878,.54);
+  const topMat=M(0x171922,.74), apronMat=M(0xd95b82,.52), denimMat=M(0x344b73,.78);
+  const shoeMat=S(0xe46f91), white=S(0xf5e8df), iris=S(0x607d91), dark=S(0x24202a);
 
-  parts.apron=meshBox(.64,.42,.47,M(0xffffff));
-  parts.apron.position.set(0,.53,.25);
-  g.add(parts.apron);
+  parts.torso=meshBox(.64,.74,.46,topMat); parts.torso.position.y=.73; g.add(parts.torso);
+  parts.apron=meshBox(.66,.48,.48,apronMat); parts.apron.position.set(0,.55,.255); g.add(parts.apron);
+  parts.apronBib=meshBox(.42,.30,.035,apronMat); parts.apronBib.position.set(0,.79,.50); g.add(parts.apronBib);
+  parts.apronPocket=meshBox(.30,.16,.025,apronMat); parts.apronPocket.position.set(0,.48,.51); g.add(parts.apronPocket);
+  parts.apronStrapL=meshBox(.055,.34,.035,apronMat); parts.apronStrapL.position.set(-.21,.83,.47); parts.apronStrapL.rotation.z=-.08; g.add(parts.apronStrapL);
+  parts.apronStrapR=parts.apronStrapL.clone(); parts.apronStrapR.position.x=.21; parts.apronStrapR.rotation.z=.08; g.add(parts.apronStrapR);
+  parts.apronBow=meshBox(.28,.08,.045,apronMat); parts.apronBow.position.set(0,.36,.48); g.add(parts.apronBow);
 
-  parts.head=new THREE.Mesh(new THREE.SphereGeometry(.37,20,16),M(0xf6c7a5));
-  parts.head.position.set(0,1.25,.02);
-  g.add(parts.head);
+  parts.neck=new THREE.Mesh(new THREE.CylinderGeometry(.105,.12,.16,12),skin); parts.neck.position.y=1.07; g.add(parts.neck);
+  parts.head=new THREE.Mesh(new THREE.SphereGeometry(.39,24,18),skin); parts.head.scale.set(1,.98,.94); parts.head.position.set(0,1.38,.025); g.add(parts.head);
 
-  parts.hair=new THREE.Mesh(new THREE.SphereGeometry(.43,20,16),M(0xf4c430));
-  parts.hair.scale.set(1,.86,1.08);
-  parts.hair.position.set(0,1.34,-.055);
-  g.add(parts.hair);
+  // Hair cap + layered fringe + side ponytail.
+  parts.hair=new THREE.Mesh(new THREE.SphereGeometry(.445,24,18),hairMat);
+  parts.hair.scale.set(1.01,.88,1.03); parts.hair.position.set(0,1.48,-.075); g.add(parts.hair);
+  parts.fringe=meshBox(.50,.19,.18,hairHi); parts.fringe.position.set(.02,1.67,.31); parts.fringe.rotation.z=-.10; g.add(parts.fringe);
+  parts.fringe2=meshBox(.28,.13,.16,hairHi); parts.fringe2.position.set(-.20,1.60,.33); parts.fringe2.rotation.z=.28; g.add(parts.fringe2);
+  parts.ponytail=new THREE.Mesh(new THREE.SphereGeometry(.25,18,14),hairMat); parts.ponytail.scale.set(.82,1.25,.72); parts.ponytail.position.set(-.36,1.43,-.05); g.add(parts.ponytail);
+  parts.ponytailTip=limb(.12,.36,.13,hairHi); parts.ponytailTip.position.set(-.46,1.18,-.04); parts.ponytailTip.rotation.z=-.28; g.add(parts.ponytailTip);
+  parts.sideLock=limb(.10,.30,.11,hairHi); parts.sideLock.position.set(.31,1.42,.20); parts.sideLock.rotation.z=.18; g.add(parts.sideLock);
 
-  parts.bun=new THREE.Mesh(new THREE.SphereGeometry(.18,14,10),M(0xf4c430));
-  parts.bun.position.set(-.27,1.55,-.02);
-  g.add(parts.bun);
+  // Symmetric eyes; the nose and mouth remain centered instead of being
+  // mirrored by the root scale, preventing the previous facial distortion.
+  for(const [key,x] of [['eyeL',-.105],['eyeR',.105]]){
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.052,12,9),white); eye.scale.z=.55; eye.position.set(x,1.405,.365); g.add(eye); parts[key]=eye;
+    const irisMesh=new THREE.Mesh(new THREE.SphereGeometry(.026,10,8),iris); irisMesh.position.set(x,1.405,.394); g.add(irisMesh); parts[key+'Iris']=irisMesh;
+    const pupil=new THREE.Mesh(new THREE.SphereGeometry(.012,8,6),dark); pupil.position.set(x,1.405,.416); g.add(pupil); parts[key+'Pupil']=pupil;
+  }
+  parts.browL=meshBox(.13,.025,.025,dark); parts.browL.position.set(-.105,1.49,.37); parts.browL.rotation.z=.05; g.add(parts.browL);
+  parts.browR=meshBox(.13,.025,.025,dark); parts.browR.position.set(.105,1.49,.37); parts.browR.rotation.z=-.05; g.add(parts.browR);
+  parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.052,10,8),skin); parts.nose.scale.set(.8,.72,1.15); parts.nose.position.set(.015,1.34,.392); g.add(parts.nose);
+  parts.mouth=meshBox(.13,.018,.025,M(0x9c5261,.55)); parts.mouth.position.set(.015,1.245,.382); g.add(parts.mouth);
+  parts.mouthSmile=meshBox(.08,.012,.018,M(0xd27783,.55)); parts.mouthSmile.position.set(.015,1.235,.39); g.add(parts.mouthSmile);
+  parts.cheekL=new THREE.Mesh(new THREE.SphereGeometry(.065,10,8),M(0xf09b91,.72)); parts.cheekL.scale.set(1,.48,.18); parts.cheekL.position.set(-.19,1.31,.355); g.add(parts.cheekL);
+  parts.cheekR=parts.cheekL.clone(); parts.cheekR.position.x=.19; g.add(parts.cheekR);
+  parts.eyeGlint=new THREE.Mesh(new THREE.SphereGeometry(.014,7,6),white); parts.eyeGlint.position.set(.105,1.418,.424); g.add(parts.eyeGlint);
 
-  // Face is on +Z because the gameplay camera looks from +Z.
-  // It is intentionally asymmetric: one visible eye plus offset nose/mouth
-  // reads as a three-quarter side profile and follows X mirroring.
-  parts.eye=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),S(0x15151a));
-  parts.eye.position.set(.105,1.285,.355);
-  g.add(parts.eye);
+  parts.armL=limb(.14,.49,.15,skin); parts.armL.position.set(-.40,.78,.02); g.add(parts.armL);
+  parts.armR=limb(.14,.49,.15,skin); parts.armR.position.set(.40,.78,.02); g.add(parts.armR);
 
-  parts.brow=meshBox(.10,.022,.018,S(0x6d432d));
-  parts.brow.position.set(.105,1.345,.358);
-  g.add(parts.brow);
+  // Longer legs with independent hip pivots make the walk cycle clearly visible.
+  parts.legL=limb(.19,.54,.20,denimMat); parts.legL.position.set(-.18,.39,.03); g.add(parts.legL);
+  parts.legR=limb(.19,.54,.20,denimMat); parts.legR.position.set(.18,.39,.03); g.add(parts.legR);
+  parts.shoeL=meshBox(.25,.14,.38,shoeMat); parts.shoeL.position.set(-.18,.075,.13); g.add(parts.shoeL);
+  parts.shoeR=meshBox(.25,.14,.38,shoeMat); parts.shoeR.position.set(.18,.075,.13); g.add(parts.shoeR);
+  parts.shoeToeL=meshBox(.22,.08,.10,white); parts.shoeToeL.position.set(-.18,.08,.31); g.add(parts.shoeToeL);
+  parts.shoeToeR=meshBox(.22,.08,.10,white); parts.shoeToeR.position.set(.18,.08,.31); g.add(parts.shoeToeR);
 
-  parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),M(0xe79b79));
-  parts.nose.scale.set(1.35,.78,1.0);
-  parts.nose.position.set(.18,1.205,.375);
-  g.add(parts.nose);
+  parts.scarf=meshBox(.66,.075,.48,apronMat); parts.scarf.position.set(0,.98,.27); g.add(parts.scarf);
+  parts.apronPin=new THREE.Mesh(new THREE.OctahedronGeometry(.045),S(0xffd43b)); parts.apronPin.position.set(.12,.68,.52); g.add(parts.apronPin);
 
-  parts.mouth=meshBox(.018,.032,.11,M(0x8f3e55));
-  parts.mouth.position.set(.14,1.115,.37);
-  g.add(parts.mouth);
-
-  parts.cheek=new THREE.Mesh(new THREE.SphereGeometry(.065,10,8),M(0xf29b91));
-  parts.cheek.scale.set(.9,.55,.22);
-  parts.cheek.position.set(.02,1.17,.37);
-  g.add(parts.cheek);
-
-  parts.hairFringe=meshBox(.46,.20,.18,M(0xf4c430));
-  parts.hairFringe.position.set(.10,1.55,.28);
-  parts.hairFringe.rotation.z=-.16;
-  g.add(parts.hairFringe);
-
-  parts.armL=limb(.13,.48,.14,M(0xf6c7a5));
-  parts.armL.position.set(-.39,.73,.03);
-  g.add(parts.armL);
-
-  parts.armR=limb(.13,.48,.14,M(0xf6c7a5));
-  parts.armR.position.set(.39,.73,.03);
-  g.add(parts.armR);
-
-  parts.legL=limb(.17,.42,.18,M(0x29202b));
-  parts.legL.position.set(-.18,.37,.05);
-  g.add(parts.legL);
-
-  parts.legR=limb(.17,.42,.18,M(0x29202b));
-  parts.legR.position.set(.18,.37,.05);
-  g.add(parts.legR);
-
-  parts.scarf=meshBox(.62,.08,.5,M(0xff4b7d));
-  parts.scarf.position.set(0,.91,.27);
-  g.add(parts.scarf);
-  parts.shoeL=meshBox(.23,.12,.34,S(0x11131c));parts.shoeL.position.set(-.18,.08,.12);g.add(parts.shoeL);
-  parts.shoeR=meshBox(.23,.12,.34,S(0x11131c));parts.shoeR.position.set(.18,.08,.12);g.add(parts.shoeR);
-  parts.eyeGlint=new THREE.Mesh(new THREE.SphereGeometry(.016,6,5),S(0xffffff));parts.eyeGlint.position.set(.12,1.30,.397);g.add(parts.eyeGlint);
-  parts.hairLock=limb(.09,.28,.10,M(0xf4c430));parts.hairLock.position.set(.28,1.37,.18);parts.hairLock.rotation.z=-.35;g.add(parts.hairLock);
-  parts.apronPin=new THREE.Mesh(new THREE.OctahedronGeometry(.045),S(0xffd43b));parts.apronPin.position.set(.12,.64,.49);g.add(parts.apronPin);
-
-  g.userData={kind:'player',parts,height:1.72,t:0,lastGrounded:false,land:0};
+  g.userData={kind:'player',parts,height:1.82,t:0,lastGrounded:false,land:0,blink:0};
   return g;
 }
-
 export function makeLion(){
  const g=new THREE.Group(),parts={};
  parts.mane=new THREE.Mesh(new THREE.SphereGeometry(.68,18,14),S(0xff6500));parts.mane.scale.set(1,.78,.8);parts.mane.position.y=.72;g.add(parts.mane);
@@ -179,75 +160,76 @@ export function animateCharacter(model,dt,state={}){
  const anim=state.anim||'';
 
  if(u.kind==='player'){
-  const swing=moving?Math.sin(cycle)*.48:Math.sin(u.t*2)*.025;
-  const runLegL=swing,runLegR=-swing;
-  p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,runLegL,.28);
-  p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,runLegR,.28);
-  p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-swing*.65,.28);
-  p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,swing*.65,.28);
+  // Full-body locomotion: legs drive from the hips, shoes follow the feet,
+  // arms counter-swing and the torso/head remain stable.
+  const stride=moving?THREE.MathUtils.clamp(.58+speed*.018,.58,.76):.035;
+  const swing=moving?Math.sin(cycle)*stride:Math.sin(u.t*2)*.025;
+  const opposite=-swing;
+  p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,swing,.34);
+  p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,opposite,.34);
+  p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,opposite*.72,.30);
+  p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,swing*.72,.30);
+  if(p.shoeL)p.shoeL.rotation.x=p.legL.rotation.x*.45;
+  if(p.shoeR)p.shoeR.rotation.x=p.legR.rotation.x*.45;
+  if(p.shoeToeL)p.shoeToeL.rotation.x=p.legL.rotation.x*.45;
+  if(p.shoeToeR)p.shoeToeR.rotation.x=p.legR.rotation.x*.45;
 
-  // State-specific poses: readable silhouette rather than generic bobbing.
-  if(anim==='jump'){
-   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,-.22,.32);
-   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,.22,.32);
-   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-.7,.32);
-   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-.7,.32);
+  if(anim==='jump'||anim==='doubleJump'){
+   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,-.28,.38);
+   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,.28,.38);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-.82,.35);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-.82,.35);
   }else if(anim==='fall'){
-   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,.32,.24);
-   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,-.32,.24);
-   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-.35,.24);
-   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,.35,.24);
+   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,.34,.30);
+   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,-.34,.30);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-.38,.28);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,.38,.28);
   }else if(anim==='stomp'){
-   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,.55,.5);
-   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,-.55,.5);
-   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.0,.5);
-   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.0,.5);
+   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,.72,.55);
+   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,.72,.55);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.05,.50);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.05,.50);
   }else if(anim==='attack'){
-   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.25,.45);
-   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.25,.45);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.25,.48);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.25,.48);
   }else if(anim==='transform'){
-   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.0,.28);
-   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.0,.28);
-   p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,.06,.18);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,-1.0,.30);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,-1.0,.30);
   }else if(anim==='land'){
-   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,.55,.4);
-   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,.55,.4);
+   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,.50,.40);
+   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,.50,.40);
   }
 
-  const bob=air?Math.sin(u.t*10)*.025:Math.abs(Math.sin(cycle))*.035;
-  const lean=moving?THREE.MathUtils.clamp((state.vx||0)*-.018,-.14,.14):0;
-  const targetBody=lean+(state.attack?-.12:0)+(anim==='stomp'?.08:0)+(anim==='land'?.06:0);
-  p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,targetBody,.22);
-  p.head.rotation.z=THREE.MathUtils.lerp(p.head.rotation.z,state.facing<0?.04:-.04,.08);
-  p.scarf.rotation.z=Math.sin(u.t*12)*.08+(state.vx?-.08*state.facing:0);
-  p.bun.rotation.z=Math.sin(u.t*8)*.04;
-  if(p.hairLock)p.hairLock.rotation.z=-.35+Math.sin(u.t*7)*.035;
-  if(p.shoeL)p.shoeL.rotation.x=p.legL.rotation.x*.35;
-  if(p.shoeR)p.shoeR.rotation.x=p.legR.rotation.x*.35;
+  const lean=moving?THREE.MathUtils.clamp((state.vx||0)*-.014,-.12,.12):0;
+  p.torso.rotation.z=THREE.MathUtils.lerp(p.torso.rotation.z,lean,.22);
+  p.head.rotation.z=THREE.MathUtils.lerp(p.head.rotation.z,moving?-(state.vx||0)*.004:0,.10);
+  p.scarf.rotation.z=Math.sin(u.t*12)*.08-(state.vx||0)*.01;
+  p.ponytail.rotation.z=Math.sin(u.t*7)*.05-(state.vx||0)*.02;
+  p.ponytailTip.rotation.z=-.28+Math.sin(u.t*8)*.08;
+  p.sideLock.rotation.z=.18+Math.sin(u.t*6)*.04;
+  p.fringe.rotation.z=-.10+Math.sin(u.t*4)*.018;
   if(p.apronPin)p.apronPin.rotation.y+=dt*3.2;
-  p.hairFringe.rotation.z=THREE.MathUtils.lerp(p.hairFringe.rotation.z,-.16+(state.vx||0)*-.006,.12);
-  if(p.cheek)p.cheek.scale.x=1+Math.sin(u.t*3)*.04;
-  // Deterministic soft blink: short closed-eye interval without timers.
-  const blinkCycle=(u.t+0.8)%3.7;
+
+  // Eye direction and blink. Both eyes remain on the face; no root mirroring.
+  const look=THREE.MathUtils.clamp((state.vx||0)*.012,-.035,.035);
+  for(const side of ['L','R']){
+   const iris=p['eye'+side+'Iris'], pupil=p['eye'+side+'Pupil'];
+   if(iris)iris.position.x=THREE.MathUtils.lerp(iris.position.x,(side==='L'?-.105:.105)+look,.22);
+   if(pupil)pupil.position.x=THREE.MathUtils.lerp(pupil.position.x,(side==='L'?-.105:.105)+look,.22);
+  }
+  const blinkCycle=(u.t+.8)%3.7;
   const blink=blinkCycle>3.48&&blinkCycle<3.58;
   const eyeScale=blink?.18:1;
+  p.eyeL.scale.y=THREE.MathUtils.lerp(p.eyeL.scale.y,eyeScale,.48);
+  p.eyeR.scale.y=THREE.MathUtils.lerp(p.eyeR.scale.y,eyeScale,.48);
   if(p.eyeGlint)p.eyeGlint.visible=!blink;
-  p.eye.scale.y=THREE.MathUtils.lerp(p.eye.scale.y,eyeScale,.45);
-  p.brow.position.y=1.345+(blink?.012:0);
+  p.browL.position.y=1.49+(blink?.012:0);p.browR.position.y=1.49+(blink?.012:0);
+  p.cheekL.scale.x=1+Math.sin(u.t*3)*.03;p.cheekR.scale.x=1+Math.sin(u.t*3)*.03;
 
-  if(anim==='jump')p.head.rotation.z+=.05;
-  if(anim==='fall')p.head.rotation.z-=.05;
-  if(anim==='attack')p.scarf.rotation.z*=.35;
-
-  u.animBob=bob;
-  const squash=anim==='land'?1.08:anim==='stomp'?1.04:1;
-  const facingSign=Math.sign(model.scale.x)||1;
-  const targetScaleX=1/squash;
-  const nextScaleX=THREE.MathUtils.lerp(Math.abs(model.scale.x),targetScaleX,.28);
-  model.scale.y=THREE.MathUtils.lerp(model.scale.y,squash,.28);
-  model.scale.x=facingSign*nextScaleX;
-  model.position.y+=bob*.12;
-
+  const squash=anim==='land'?1.07:anim==='stomp'?1.04:1;
+  const baseX=Math.sign(state.facing||1);
+  model.scale.x=THREE.MathUtils.lerp(model.scale.x,baseX*squash,.28);
+  model.scale.y=THREE.MathUtils.lerp(model.scale.y,1/squash,.28);
  }else if(u.kind==='lion'){
   const swing=Math.sin(cycle)*.25;
   if(p.earL)p.earL.rotation.z=Math.sin(u.t*2.2)*.06;
