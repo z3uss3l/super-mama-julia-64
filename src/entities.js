@@ -227,8 +227,13 @@ export function animateCharacter(model,dt,state={}){
   p.cheekL.scale.x=1+Math.sin(u.t*3)*.03;p.cheekR.scale.x=1+Math.sin(u.t*3)*.03;
 
   const squash=anim==='land'?1.07:anim==='stomp'?1.04:1;
-  const baseX=Math.sign(state.facing||1);
-  model.scale.x=THREE.MathUtils.lerp(model.scale.x,baseX*squash,.28);
+  const facing=Math.sign(state.facing||1);
+  // Character art faces local +Z. Rotate the whole model around Y instead
+  // of mirroring scale.x: mirroring made the face look backward/deformed.
+  const targetYaw=facing>0?Math.PI/2:-Math.PI/2;
+  const yawDelta=Math.atan2(Math.sin(targetYaw-model.rotation.y),Math.cos(targetYaw-model.rotation.y));
+  model.rotation.y += yawDelta*Math.min(1,dt*12);
+  model.scale.x=THREE.MathUtils.lerp(model.scale.x,squash,.28);
   model.scale.y=THREE.MathUtils.lerp(model.scale.y,1/squash,.28);
  }else if(u.kind==='lion'){
   const swing=Math.sin(cycle)*.25;
