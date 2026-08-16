@@ -83,6 +83,8 @@ export class Input {
       e.preventDefault();
       try { el.setPointerCapture?.(e.pointerId); } catch (_) {}
 
+      el.classList.add('isPressed');
+
       if (!this.touchKeys.has(type)) {
         if (type === 'jump') this.jumpPressed = true;
         if (type === 'action') this.actionPressed = true;
@@ -97,6 +99,7 @@ export class Input {
     const release = e => {
       e.preventDefault();
       if (type === 'jump') this.jumpReleased = true;
+      el.classList.remove('isPressed');
       this.touchKeys.delete(type);
       this.sync();
     };
@@ -105,11 +108,14 @@ export class Input {
     el.addEventListener('pointerup', release, { passive: false });
     el.addEventListener('pointercancel', release, { passive: false });
     el.addEventListener('lostpointercapture', release, { passive: false });
+    el.addEventListener('pointerout', e => { if (e.pointerType === 'mouse') release(e); }, { passive: false });
+    el.addEventListener('contextmenu', e => e.preventDefault(), { passive: false });
   }
 
   releaseAll() {
     this.keys.clear();
     this.touchKeys.clear();
+    document.querySelectorAll('#touch button.isPressed').forEach(el => el.classList.remove('isPressed'));
     this.sync();
     this.jumpReleased = true;
   }
