@@ -1,6 +1,6 @@
 export const GAME={
   name:'Super Mama Julia 64',
-  version:'7.1.5',
+  version:'7.2.0',
   saveKey:'smj64-v5',
   gravity:-27,
   playerSpeed:8.6,
@@ -25,9 +25,9 @@ export const WORLDS=[
 
 
 export const STORY=[
- {chapter:'PROLOG — Der Ruf des Löwen',intro:'Julia findet im Blumenhain eine Spur aus goldenen Pfoten. Jemand ruft aus dem Zauberwald.',outro:'Die Spur führt tiefer in den Wald.'},
+ {chapter:'PROLOG — Der Ruf des Löwen',intro:'Julia findet im Blumenhain eine Spur aus goldenen Pfoten. Jemand ruft aus dem Zauberwald.',outro:'Die Spur führt tiefer in den Wald. Am Horizont leuchtet ein uraltes Tor.'},
  {chapter:'I — Der Zauberwald',intro:'Im Zauberwald entdeckt Julia geheimnisvolle Löwenpilze. Einer pulsiert wie ein kleines Herz. Tamia wartet bereits auf sie.',outro:'Julia spürt: Der Löwe ist kein Kostüm. Er gehört zu ihr.'},
- {chapter:'II — Die Pilzprüfung',intro:'Tamia kennt die verborgenen Sprungpfade. Shaya, die Hüterin des Lichts, warnt vor einem falschen Weg.',outro:'Gemeinsam öffnen sie den Pfad zum Feuer.'},
+ {chapter:'II — Die Pilzprüfung',intro:'Tamia kennt die verborgenen Sprungpfade. Shaya, die Hüterin des Lichts, warnt vor einem falschen Weg.',outro:'Gemeinsam öffnen sie den Pfad zum Feuer. Zum ersten Mal reagieren Tamia und Shaya aufeinander wie zwei Teile eines alten Plans.'},
  {chapter:'III — Glut-Canyon',intro:'Tamia und Shaya bleiben am Waldtor zurück. Julia folgt allein der Löwenspur in den Glut-Canyon.',outro:'Die beiden haben ihr einen letzten Hinweis mitgegeben: Nicht jede Abkürzung ist der sichere Weg.'},
  {chapter:'IV — Eispalast',intro:'Im Eis findet Julia Pfotenabdrücke und ein Medaillon mit demselben Symbol wie ihr Pilz.',outro:'Das Medaillon zeigt den Weg zur Neonfabrik.'},
  {chapter:'V — Neonfabrik',intro:'Die Fabrik produziert künstliche Kopien der Löwenkraft. Mama Prime will Julias Kraft kontrollieren.',outro:'Mama Prime flieht mit einem Fragment des Löwensiegels.'},

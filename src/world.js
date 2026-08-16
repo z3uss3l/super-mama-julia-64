@@ -83,6 +83,27 @@ export class WorldRuntime{
    this.enemies.push({...e,mesh:m,hp:st.hp,maxHp:st.hp,alive:true,phase:Math.random()*6,hitFlash:0,hitAnim:0,fire:0,ai:'patrol',aiTimer:0,attackTimer:0,recoil:0,direction:1,supportPlatform:support});
   }
   for(const s of (level.setpieces||[])){
+   if(s.type==='landmark'){
+    const g=new THREE.Group();
+    const accent=level.world.accent;
+    const core=new THREE.Mesh(
+      new THREE.IcosahedronGeometry(.55,1),
+      new THREE.MeshStandardMaterial({color:accent,emissive:accent,emissiveIntensity:.8,roughness:.22})
+    );
+    core.position.y=.95;g.add(core);
+    const ring=new THREE.Mesh(
+      new THREE.TorusGeometry(1.05,.055,10,32),
+      new THREE.MeshStandardMaterial({color:accent,emissive:accent,emissiveIntensity:.7})
+    );
+    ring.rotation.x=Math.PI/2;ring.position.y=.95;g.add(ring);
+    const beam=new THREE.Mesh(
+      new THREE.CylinderGeometry(.025,.12,3.2,8),
+      new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.16})
+    );
+    beam.position.y=2.0;g.add(beam);
+    g.position.set(s.x,s.y,0);g.userData={kind:'landmark',phase:s.phase||0};
+    this.scene.add(g);this.objects.push(g);
+   }
    if(s.type==='storyGate'){
     const g=new THREE.Group();
     const left=meshBox(.34,2.6,.38,new THREE.MeshStandardMaterial({color:level.world.accent,emissive:level.world.accent,emissiveIntensity:.35}));
@@ -99,7 +120,24 @@ export class WorldRuntime{
   this.boss={...data,mesh:m,hp:data.stats.hp,maxHp:data.stats.hp,phase:0,attackTimer:1.4};
  }
  update(dt){
-  for(const n of this.npcs){if(n.mesh){n.mesh.position.y=n.y;animateCharacter(n.mesh,dt,{grounded:true})}}
+  for(const n of this.npcs){
+   if(n.mesh){
+    const t=performance.now()*.001+n.mesh.userData.t;
+    n.mesh.position.y=n.y+Math.sin(t*2.1)*.035;
+    n.mesh.rotation.y=Math.sin(t*.7)*.05;
+    n.mesh.scale.setScalar(1+Math.sin(t*2.1)*.018);
+    animateCharacter(n.mesh,dt,{grounded:true});
+   }
+  }
+  for(const o of this.objects){
+   if(o.userData?.kind==='landmark'){
+    const t=performance.now()*.001+(o.userData.phase||0);
+    o.rotation.y+=dt*.25;
+    const core=o.children[0],ring=o.children[1];
+    if(core){core.rotation.x+=dt*1.7;core.rotation.z+=dt*1.2;core.position.y=.95+Math.sin(t*2.5)*.10}
+    if(ring){ring.rotation.z+=dt*.9;ring.scale.setScalar(1+Math.sin(t*3.1)*.08)}
+   }
+  }
   for(const it of this.items){
    if(it.alive&&it.type==='mushroom'&&it.mesh){
     const t=performance.now()*.001;

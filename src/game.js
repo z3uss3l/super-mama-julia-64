@@ -9,6 +9,7 @@ import {buildLevel} from './levels.js';
 import {resolvePlayer,checkStompCollision} from './physics.js';
 import {WorldRuntime} from './world.js';
 import {FollowCamera} from './camera.js';
+import {CinematicDirector} from './cinematics.js';
 import {Progression} from './progression.js';
 import {Decor} from './decor.js';
 
@@ -26,8 +27,8 @@ export class Game{
   this.projectileGeometry=new THREE.SphereGeometry(.13,7,6);
   this.projectileMaterial=new THREE.MeshBasicMaterial({color:0xff4d4d});
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
-  this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
-  this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;this.storyFlags=new Set();this.devGodMode=false;
+  this.follow=new FollowCamera(this.camera);this.cinematics=new CinematicDirector(this.camera,this.follow,this.particles,this.audio,this.ui);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
+  this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;this.storyFlags=new Set();this.devGodMode=false;;this.epicTimer=0;this.milestones=new Set();this.ambientTimer=0;
   this.bind();this.resize();addEventListener('resize',()=>this.resize());this.state.save.unlocks.doubleJump=true;this.ui.setAbilities(this.state.save.unlocks);this.loop();
  }
  setupLighting(){
@@ -59,7 +60,7 @@ export class Game{
   if(index>=LEVELS.length){this.win();return}
   this.clear();this.state.mode='play';this.state.level=index;
   if(newRun){this.state.score=0;this.state.coins=0;this.state.lives=3;this.state.checkpoint=null;this.state.save.checkpoint=null}
-  this.level=buildLevel(index);this.storyFlags=new Set();this.scene.background=new THREE.Color(this.level.world.sky);
+  this.level=buildLevel(index);this.storyFlags=new Set();this.milestones=new Set();this.epicTimer=0;this.ambientTimer=0;this.scene.background=new THREE.Color(this.level.world.sky);
   this.scene.fog=new THREE.Fog(this.level.world.fog,35,115);this.decor=new Decor(this.scene,this.level.world);
   const cp=this.state.checkpoint&&this.state.checkpoint.level===index?this.state.checkpoint:null;
   const spawnPlatform=this.level?.platforms?.[0];
@@ -75,9 +76,16 @@ export class Game{
   if(this.level.cfg.story?.intro)this.ui.toast(`📖 ${this.level.cfg.story.chapter}: ${this.level.cfg.story.intro}`);
   if(this.level.cfg.storyBeat)setTimeout(()=>{if(this.state.mode==='play')this.ui.toast(`✨ ${this.level.cfg.storyBeat}`)},650);
   this.audio.power();
+  if(newRun||!cp){
+   setTimeout(()=>{
+    if(this.state.mode==='play'&&!this.cinematics.active){
+     this.cinematics.start('intro',{player:this.player,accent:this.level.world.accent});
+    }
+   },180);
+  }
  }
  spawnBoss(){const b=this.level.boss;this.world.addBoss(b);this.boss=this.world.boss;this.audio.boss();this.ui.showBoss(b.stats.name,b.hp,b.hp)}
- togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V7.1.5')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
+ togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V7.3.0')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
   if(!p)return false;
@@ -191,9 +199,47 @@ export class Game{
  collect(){
   for(const it of this.world.items){if(!it.alive)continue;it.mesh.rotation.y+=.05;const d=Math.hypot(it.x-this.player.x,it.y-(this.player.y+.7));if(d<1.05){it.alive=false;it.mesh.visible=false;this.progression.collect(it.type,this.player,this.playerModel);this.ui.setAbilities(this.state.save.unlocks)}}
  }
+ updateEpicFlow(dt){
+  const p=this.player;if(!p||!this.level)return;
+  this.epicTimer+=dt;this.ambientTimer+=dt;
+  const world=this.level.world;
+  if(this.ambientTimer>.18){
+   this.ambientTimer=0;
+   const pos={x:p.x+(Math.random()-.5)*9,y:p.y+2.2+Math.random()*3.2,z:0};
+   const color=world.id==='forest'?0x9cffb0:world.id==='canyon'?0xff7b2b:world.id==='ice'?0xd8f7ff:world.id==='neon'?0xff4be1:0xffd43b;
+   this.particles.burst(pos,color,1,.5);
+  }
+  const marks=[.22,.48,.74];
+  for(let i=0;i<marks.length;i++){
+   const mark=this.level.cfg.length*marks[i];
+   if(p.x>=mark&&!this.milestones.has(i)){
+    this.milestones.add(i);
+    const pos={x:p.x,y:p.y+1,z:0};
+    const color=world.accent;
+    this.particles.sparkle(pos,color,12,3.8);
+    this.particles.shockwave(pos,color,2.2,.42);
+    this.follow.pulse(.10,.42);
+    if(i===0)this.ui.toast(`✨ ${world.name}: Die nächste Spur wird sichtbar.`);
+    else if(i===1)this.ui.toast(p.lion?'🦁 Die Löwenkraft antwortet.':'⚡ Ein neuer Weg öffnet sich.');
+    else this.ui.toast(this.level.cfg.boss?'🔥 Der Wächter wartet am Horizont!':'🌟 Du bist fast am Ziel!');
+   }
+  }
+  if(world.id==='forest'&&this.storyFlags.has('tamia')&&this.storyFlags.has('shaya')&&!this.storyFlags.has('alliance')&&!this.cinematics.active){
+   this.storyFlags.add('alliance');
+   this.cinematics.start('alliance',{
+    player:p,
+    npcs:this.world.npcs,
+    accent:world.accent
+   },()=>{
+    this.state.save.stats.story=(this.state.save.stats.story||0)+1;
+    this.state.persist();
+    this.ui.toast('🌿 TAMIA + SHAYA: Der alte Löwenpfad ist offen.');
+   });
+  }
+ }
  updateStoryActors(){
   const p=this.player;
-  if(!p||!this.world.npcs)return;
+  if(!p||!this.world.npcs||this.cinematics.active)return;
   for(const n of this.world.npcs){
    if(n.seen)continue;
    const dist=Math.hypot(p.x-n.x,p.y-n.y);
@@ -201,9 +247,16 @@ export class Game{
     n.seen=true;
     this.storyFlags.add(n.id);
     n.mesh.scale.setScalar(1.12);
-    this.ui.toast(`💬 ${n.dialogue}`);
-    this.particles.burst(n.mesh.position,n.role==='tamia'?0xe56b8f:0x6d7cff,12,3);
-    this.audio.power();
+    const type=n.id==='tamia'?'tamia':'shaya';
+    this.cinematics.start(type,{
+     player:p,
+     npcs:this.world.npcs,
+     accent:this.level.world.accent
+    },()=>{
+     n.mesh.scale.setScalar(1);
+     this.ui.toast(`💬 ${n.dialogue}`);
+    });
+    break;
    }
   }
  }
@@ -361,7 +414,13 @@ export class Game{
    this.attack();
   }
   if(this.input.dashPressed)this.dash();
-  this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);this.updateStoryActors();
+  this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);this.updateStoryActors();this.updateEpicFlow(dt);
+  if(this.cinematics.active){
+   this.cinematics.update(dt);
+   this.particles.update(dt);
+   this.input.consume();
+   return;
+  }
   p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
   const wasGrounded=p.grounded;
   const stompPrevY=p.y;
@@ -450,9 +509,12 @@ export class Game{
    this.triggerFeedback('transform',1.2);
    this.particles.burst(this.playerModel.position,0xffd43b,40,9);
    this.particles.burst(this.playerModel.position,0xff8a2b,24,7);
-   this.particles.burst(this.playerModel.position,0xfff3b0,16,4);
+   this.particles.burst(this.playerModel.position,0xfff3b0,16,4);this.particles.shockwave(this.playerModel.position,0xffd43b,2.8,.55);this.follow.pulse(.22,.8);
    this.ui.toast('🦁 LÖWENKRAFT ERWACHT!');
    this.follow.kick(.18);
+   if(!this.cinematics.active){
+    this.cinematics.start('lion',{player:p,npcs:this.world.npcs,accent:0xffd43b});
+   }
   }
   if(p.transform>0)p.transform=Math.max(0,p.transform-dt);
   if(p.star>0){
@@ -483,9 +545,9 @@ export class Game{
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');
-  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …` ,'V7.1.5');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
+  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …` ,'V7.3.0');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
  }
- gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V7.1.5')}
- win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}` ,'V7.1.5');this.audio.win()}
+ gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V7.3.0')}
+ win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}` ,'V7.3.0');this.audio.win()}
  loop(){requestAnimationFrame(()=>this.loop());const dt=Math.min(.033,this.clock.getDelta());this.update(dt);this.renderer.render(this.scene,this.camera)}
 }

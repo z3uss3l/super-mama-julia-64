@@ -90,6 +90,22 @@ export function buildLevel(index){
  }
  if(cfg.storyBeat)setpieces.push({type:'storyGate',x:cfg.worldId==='forest'?90:cfg.worldId==='canyon'?cfg.length-18:cfg.length-22,y:1.2});
 
+ // Epic landmark beats: visual anchors + optional traversal branches.
+ const landmarkX=cfg.worldId==='meadow'?42:
+                 cfg.worldId==='forest'?72:
+                 cfg.worldId==='canyon'?58:
+                 cfg.worldId==='ice'?66:78;
+ setpieces.push({type:'landmark',x:landmarkX,y:1.1,variant:cfg.worldId,phase:cfg.index%3});
+ if(cfg.worldId==='meadow'){
+  for(let i=0;i<5;i++)addPlatform(platforms,58+i*5,2.1+(i%2)*.55,3.2,.42,mat,{storyRoute:'flower-arc'});
+ }else if(cfg.worldId==='forest'){
+  for(let i=0;i<5;i++)addPlatform(platforms,96+i*4.5,2.7+(i%2)*.65,3.0,.42,mat,{storyRoute:'moon-steps'});
+ }else if(cfg.worldId==='ice'){
+  for(let i=0;i<5;i++)addPlatform(platforms,46+i*5,2.35+(i%2)*.45,3.1,.42,mat,{storyRoute:'ice-bridge'});
+ }else if(cfg.worldId==='neon'){
+  for(let i=0;i<6;i++)addPlatform(platforms,54+i*4.2,2.5+(i%3)*.45,2.8,.42,mat,{storyRoute:'pulse-lane'});
+ }
+
  // Coins are placed as readable routes: reward the intended jump arc.
  for(let i=0;i<platforms.length;i++){
   const p=platforms[i];
