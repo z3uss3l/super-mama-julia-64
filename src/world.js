@@ -1,9 +1,9 @@
 import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
-import {makeEnemy,meshBox} from './entities.js';
+import {makeEnemy,makeNPC,animateCharacter,meshBox} from './entities.js';
 import {ENEMY_STATS} from './config.js';
 
 export class WorldRuntime{
- constructor(scene){this.scene=scene;this.objects=[];this.enemies=[];this.items=[];this.level=null;this.boss=null;this.goal=null;this.goalPulse=0}
+ constructor(scene){this.scene=scene;this.objects=[];this.enemies=[];this.items=[];this.npcs=[];this.level=null;this.boss=null;this.goal=null;this.goalPulse=0}
  clear(){
   for(const o of this.objects){
    this.scene.remove(o);
@@ -12,6 +12,7 @@ export class WorldRuntime{
   this.objects=[];
   this.enemies=[];
   this.items=[];
+  this.npcs=[];
   this.boss=null;
   this.goal=null;
   this.level=null;
@@ -65,6 +66,12 @@ export class WorldRuntime{
    m.castShadow=true;m.position.set(it.x,it.y,it.z);this.scene.add(m);this.objects.push(m);
    this.items.push({...it,mesh:m,alive:true});
   }
+  for(const n of (level.npcs||[])){
+   const m=makeNPC(n.role);
+   m.position.set(n.x,n.y,n.z||.15);
+   this.scene.add(m);this.objects.push(m);
+   this.npcs.push({...n,mesh:m,seen:false});
+  }
   for(const e of level.enemies){
    const m=makeEnemy(e.type);m.position.set(e.x,e.y,0);this.scene.add(m);this.objects.push(m);
    const st=ENEMY_STATS[e.type];
@@ -75,6 +82,15 @@ export class WorldRuntime{
    }
    this.enemies.push({...e,mesh:m,hp:st.hp,maxHp:st.hp,alive:true,phase:Math.random()*6,hitFlash:0,hitAnim:0,fire:0,ai:'patrol',aiTimer:0,attackTimer:0,recoil:0,direction:1,supportPlatform:support});
   }
+  for(const s of (level.setpieces||[])){
+   if(s.type==='storyGate'){
+    const g=new THREE.Group();
+    const left=meshBox(.34,2.6,.38,new THREE.MeshStandardMaterial({color:level.world.accent,emissive:level.world.accent,emissiveIntensity:.35}));
+    const right=left.clone();left.position.x=-1.45;right.position.x=1.45;
+    const top=meshBox(3.2,.28,.42,new THREE.MeshStandardMaterial({color:level.world.accent,emissive:level.world.accent,emissiveIntensity:.5}));
+    top.position.y=1.3;g.add(left,right,top);g.position.set(s.x,s.y,0);this.scene.add(g);this.objects.push(g);
+   }
+  }
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.8,.12,12,28),new THREE.MeshStandardMaterial({color:level.world.accent,emissive:level.world.accent,emissiveIntensity:.55}));ring.castShadow=true;
   ring.position.set(level.goalX,.8,0);this.scene.add(ring);this.objects.push(ring);this.goal=ring;
  }
@@ -83,6 +99,7 @@ export class WorldRuntime{
   this.boss={...data,mesh:m,hp:data.stats.hp,maxHp:data.stats.hp,phase:0,attackTimer:1.4};
  }
  update(dt){
+  for(const n of this.npcs){if(n.mesh){n.mesh.position.y=n.y;animateCharacter(n.mesh,dt,{grounded:true})}}
   for(const it of this.items){
    if(it.alive&&it.type==='mushroom'&&it.mesh){
     const t=performance.now()*.001;

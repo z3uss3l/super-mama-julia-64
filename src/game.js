@@ -27,7 +27,7 @@ export class Game{
   this.projectileMaterial=new THREE.MeshBasicMaterial({color:0xff4d4d});
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
   this.follow=new FollowCamera(this.camera);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
-  this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;;this.devGodMode=false;
+  this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;this.storyFlags=new Set();this.devGodMode=false;
   this.bind();this.resize();addEventListener('resize',()=>this.resize());this.state.save.unlocks.doubleJump=true;this.ui.setAbilities(this.state.save.unlocks);this.loop();
  }
  setupLighting(){
@@ -59,7 +59,7 @@ export class Game{
   if(index>=LEVELS.length){this.win();return}
   this.clear();this.state.mode='play';this.state.level=index;
   if(newRun){this.state.score=0;this.state.coins=0;this.state.lives=3;this.state.checkpoint=null;this.state.save.checkpoint=null}
-  this.level=buildLevel(index);this.scene.background=new THREE.Color(this.level.world.sky);
+  this.level=buildLevel(index);this.storyFlags=new Set();this.scene.background=new THREE.Color(this.level.world.sky);
   this.scene.fog=new THREE.Fog(this.level.world.fog,35,115);this.decor=new Decor(this.scene,this.level.world);
   const cp=this.state.checkpoint&&this.state.checkpoint.level===index?this.state.checkpoint:null;
   const spawnPlatform=this.level?.platforms?.[0];
@@ -70,10 +70,14 @@ export class Game{
   this.state.quest={kind:this.level.cfg.questKind,target:this.level.cfg.questTarget,progress:0,done:false};
   this.state.levelStart=performance.now();this.state.bossDefeated=false;
   this.ui.hideScreen();this.ui.hideBoss();this.ui.setAbilities(this.state.save.unlocks);
-  this.ui.setObjective(this.level.cfg.quest);this.ui.setLevel(`${this.level.cfg.name} · ${index+1}/${LEVELS.length}`);if(this.level.cfg.story?.intro)this.ui.toast(`📖 ${this.level.cfg.story.chapter}: ${this.level.cfg.story.intro}`);this.audio.power();
+  this.ui.setObjective(this.level.cfg.quest);
+  this.ui.setLevel(`${this.level.cfg.name} · ${index+1}/${LEVELS.length}`);
+  if(this.level.cfg.story?.intro)this.ui.toast(`📖 ${this.level.cfg.story.chapter}: ${this.level.cfg.story.intro}`);
+  if(this.level.cfg.storyBeat)setTimeout(()=>{if(this.state.mode==='play')this.ui.toast(`✨ ${this.level.cfg.storyBeat}`)},650);
+  this.audio.power();
  }
  spawnBoss(){const b=this.level.boss;this.world.addBoss(b);this.boss=this.world.boss;this.audio.boss();this.ui.showBoss(b.stats.name,b.hp,b.hp)}
- togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V7.1.4')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
+ togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V7.1.5')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
   if(!p)return false;
@@ -186,6 +190,22 @@ export class Game{
  }
  collect(){
   for(const it of this.world.items){if(!it.alive)continue;it.mesh.rotation.y+=.05;const d=Math.hypot(it.x-this.player.x,it.y-(this.player.y+.7));if(d<1.05){it.alive=false;it.mesh.visible=false;this.progression.collect(it.type,this.player,this.playerModel);this.ui.setAbilities(this.state.save.unlocks)}}
+ }
+ updateStoryActors(){
+  const p=this.player;
+  if(!p||!this.world.npcs)return;
+  for(const n of this.world.npcs){
+   if(n.seen)continue;
+   const dist=Math.hypot(p.x-n.x,p.y-n.y);
+   if(dist<3.0){
+    n.seen=true;
+    this.storyFlags.add(n.id);
+    n.mesh.scale.setScalar(1.12);
+    this.ui.toast(`💬 ${n.dialogue}`);
+    this.particles.burst(n.mesh.position,n.role==='tamia'?0xe56b8f:0x6d7cff,12,3);
+    this.audio.power();
+   }
+  }
  }
  updateEnemies(dt){
   const p=this.player;
@@ -341,7 +361,7 @@ export class Game{
    this.attack();
   }
   if(this.input.dashPressed)this.dash();
-  this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);
+  this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);this.updateStoryActors();
   p.inputAxis=(this.input.right?1:0)-(this.input.left?1:0);p.maxSpeed=GAME.playerSpeed*(p.lion?1.12:1);if(p.vx)p.facing=Math.sign(p.vx);
   const wasGrounded=p.grounded;
   const stompPrevY=p.y;
@@ -463,9 +483,9 @@ export class Game{
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');
-  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …` ,'V7.1.4');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
+  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …` ,'V7.1.5');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
  }
- gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V7.1.4')}
- win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}` ,'V7.1.4');this.audio.win()}
+ gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V7.1.5')}
+ win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}` ,'V7.1.5');this.audio.win()}
  loop(){requestAnimationFrame(()=>this.loop());const dt=Math.min(.033,this.clock.getDelta());this.update(dt);this.renderer.render(this.scene,this.camera)}
 }

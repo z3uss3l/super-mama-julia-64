@@ -1,6 +1,6 @@
 export const GAME={
   name:'Super Mama Julia 64',
-  version:'7.1.1',
+  version:'7.1.5',
   saveKey:'smj64-v5',
   gravity:-27,
   playerSpeed:8.6,
@@ -26,9 +26,9 @@ export const WORLDS=[
 
 export const STORY=[
  {chapter:'PROLOG — Der Ruf des Löwen',intro:'Julia findet im Blumenhain eine Spur aus goldenen Pfoten. Jemand ruft aus dem Zauberwald.',outro:'Die Spur führt tiefer in den Wald.'},
- {chapter:'I — Der Zauberwald',intro:'Im Zauberwald entdeckt Julia geheimnisvolle Löwenpilze. Einer pulsiert wie ein kleines Herz.',outro:'Julia spürt: Der Löwe ist kein Kostüm. Er gehört zu ihr.'},
- {chapter:'II — Die Pilzprüfung',intro:'Die Waldwesen testen Julia. Zwischen Wurzeln und Nebel liegen weitere Pilze verborgen.',outro:'Der Löwengeist zeigt Julia den Weg zum Feuer.'},
- {chapter:'III — Glut-Canyon',intro:'Die Spur führt in eine Welt aus Lava und Maschinen. Nur die Löwenkraft öffnet den sicheren Weg.',outro:'Hinter der Lava wartet das Eis.'},
+ {chapter:'I — Der Zauberwald',intro:'Im Zauberwald entdeckt Julia geheimnisvolle Löwenpilze. Einer pulsiert wie ein kleines Herz. Tamia wartet bereits auf sie.',outro:'Julia spürt: Der Löwe ist kein Kostüm. Er gehört zu ihr.'},
+ {chapter:'II — Die Pilzprüfung',intro:'Tamia kennt die verborgenen Sprungpfade. Shaya, die Hüterin des Lichts, warnt vor einem falschen Weg.',outro:'Gemeinsam öffnen sie den Pfad zum Feuer.'},
+ {chapter:'III — Glut-Canyon',intro:'Tamia und Shaya bleiben am Waldtor zurück. Julia folgt allein der Löwenspur in den Glut-Canyon.',outro:'Die beiden haben ihr einen letzten Hinweis mitgegeben: Nicht jede Abkürzung ist der sichere Weg.'},
  {chapter:'IV — Eispalast',intro:'Im Eis findet Julia Pfotenabdrücke und ein Medaillon mit demselben Symbol wie ihr Pilz.',outro:'Das Medaillon zeigt den Weg zur Neonfabrik.'},
  {chapter:'V — Neonfabrik',intro:'Die Fabrik produziert künstliche Kopien der Löwenkraft. Mama Prime will Julias Kraft kontrollieren.',outro:'Mama Prime flieht mit einem Fragment des Löwensiegels.'},
  {chapter:'VI — Das Löwensiegel',intro:'Julia folgt dem Fragment. Die Pilze sind Teile eines uralten Schutzrituals.',outro:'Nur noch das Herzstück fehlt.'},
@@ -36,6 +36,21 @@ export const STORY=[
  {chapter:'VIII — Mama Prime',intro:'Die künstliche Löwenkraft erwacht. Mama Prime stellt sich Julia ein letztes Mal entgegen.',outro:'Das Siegel ist fast vollständig.'},
  {chapter:'EPILOG — Super Mama',intro:'Julia setzt das Siegel ein. Der Löwengeist bleibt an ihrer Seite.',outro:'Die Welten sind gerettet. Und irgendwo wächst bereits der nächste goldene Pilz.'}
 ];
+
+export const CHARACTERS={
+ tamia:{
+  id:'tamia',name:'Tamia',role:'Waldläuferin',
+  color:0xe56b8f,accent:0xffc3d2,
+  intro:'Tamia kennt die alten Pfade des Zauberwaldes. Sie führt Julia zu den verborgenen Sprungwegen.',
+  forest:'Der Löwenpilz reagiert auf Mut. Nimm den hohen Pfad – dort versteckt sich die erste Spur.'
+ },
+ shaya:{
+  id:'shaya',name:'Shaya',role:'Lichtwächterin',
+  color:0x6d7cff,accent:0xd9ddff,
+  intro:'Shaya bewacht das Lichtarchiv. Sie kann erkennen, welche Wege echt und welche nur Spiegelbilder sind.',
+  forest:'Vertrau nicht dem Weg, der am schnellsten aussieht. Das Licht zeigt dir den sicheren Sprung.'
+ }
+};
 
 export const LEVELS=WORLDS.flatMap((w,wi)=>Array.from({length:3},(_,li)=>({
  id:wi*3+li,
@@ -49,7 +64,18 @@ export const LEVELS=WORLDS.flatMap((w,wi)=>Array.from({length:3},(_,li)=>({
  questTarget:li===0?14:li===1?8:1,
  story:STORY[Math.min(STORY.length-1,wi*2+li%2)],
  quest:li===0?'Sammle 14 Münzen':li===1?'Besiege 8 Gegner':'Behalte mindestens 1 Herz',
- boss:li===2
+ boss:li===2,
+ characters:
+   (w.id==='forest'&&li===0)?['tamia']:
+   (w.id==='forest'&&li===1)?['tamia','shaya']:
+   (w.id==='forest'&&li===2)?['tamia','shaya']:
+   (w.id==='meadow'&&li===2)?['tamia']:[],
+ storyBeat:
+   w.id==='forest'&&li===0?'Tamia erscheint am Moosbogen.':
+   w.id==='forest'&&li===1?'Shaya wartet am Lichtaltar.':
+   w.id==='forest'&&li===2?'Tamia und Shaya öffnen gemeinsam das Löwentor.':
+   w.id==='canyon'&&li===0?'Julia verlässt den Wald mit ihrem Hinweis.':
+   null
 })));
 
 export const ENEMY_STATS={

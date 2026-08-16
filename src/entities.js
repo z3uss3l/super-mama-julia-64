@@ -96,6 +96,38 @@ export function makeLion(){
  g.userData={kind:'lion',parts,t:0};return g;
 }
 
+export function makeNPC(role){
+ const palette=role==='tamia'
+  ? {dress:0xe56b8f,hair:0x5a3426,accent:0xffc3d2}
+  : {dress:0x6d7cff,hair:0x241f4f,accent:0xd9ddff};
+ const g=new THREE.Group(),parts={};
+
+ parts.body=meshBox(.48,.72,.38,M(palette.dress));
+ parts.body.position.y=.56;g.add(parts.body);
+
+ parts.head=new THREE.Mesh(new THREE.SphereGeometry(.30,16,12),M(0xf4c2a1));
+ parts.head.position.y=1.18;g.add(parts.head);
+
+ parts.hair=new THREE.Mesh(new THREE.SphereGeometry(.33,16,12),M(palette.hair));
+ parts.hair.scale.set(1,.9,1.05);parts.hair.position.set(0,1.27,-.04);g.add(parts.hair);
+
+ parts.eye=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),S(0x15151a));
+ parts.eye.position.set(.09,1.19,.285);g.add(parts.eye);
+ const eye2=parts.eye.clone();eye2.position.x=-.09;g.add(eye2);
+
+ parts.cape=meshBox(.56,.62,.08,M(palette.accent));
+ parts.cape.position.set(0,.65,-.22);g.add(parts.cape);
+
+ parts.staff=new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,.95,8),S(palette.accent));
+ parts.staff.position.set(.38,.58,.03);g.add(parts.staff);
+
+ parts.gem=new THREE.Mesh(new THREE.OctahedronGeometry(.10),S(palette.accent));
+ parts.gem.position.set(.38,1.06,.03);g.add(parts.gem);
+
+ g.userData={kind:'npc',role,parts,t:Math.random()*6.28};
+ return g;
+}
+
 export function makeEnemy(type,boss=false){
  const g=new THREE.Group(),colors={slime:0x5bc34b,bat:0xff3b43,runner:0x8b5cf6,turret:0xffa21c};
  const mat=M(colors[type]||0xffffff),parts={};
@@ -254,6 +286,13 @@ export function animateCharacter(model,dt,state={}){
   p.eye.scale.setScalar(1+Math.sin(u.t*7)*.12);
   p.body.scale.y=THREE.MathUtils.lerp(p.body.scale.y,state.attack?.92:1,.18);
   if(state.recoil>0)p.body.position.z=Math.sin(u.t*40)*.04;
+ }else if(u.kind==='npc'){
+  const bob=Math.sin(u.t*2.2)*.025;
+  p.body.position.y=.56+bob;
+  p.head.position.y=1.18+bob;
+  p.cape.rotation.z=Math.sin(u.t*1.7)*.035;
+  p.gem.rotation.y+=dt*1.8;
+  p.gem.position.y=1.06+Math.sin(u.t*3)*.04;
  }
 }
 

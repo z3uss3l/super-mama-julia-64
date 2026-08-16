@@ -12,7 +12,7 @@ const addEnemy=(enemies,type,x,y)=>enemies.push({type,x,y,z:0});
 
 export function buildLevel(index){
  const cfg=LEVELS[index],world=WORLDS[cfg.world],mat=materialFor(world);
- const platforms=[],items=[],enemies=[],hazards=[],moving=[];
+ const platforms=[],items=[],enemies=[],hazards=[],moving=[],npcs=[],setpieces=[];
  const patterns=[
   [
    [0,-.45,18], [14.5,.1,7], [24.5,.55,6], [34.5,.1,8], [49,.8,6], [58,.15,10],
@@ -39,6 +39,56 @@ export function buildLevel(index){
  const last=platforms.at(-1);
  if(last.x+last.w/2<cfg.length-8)addPlatform(platforms,cfg.length-8,.45,14,.85,mat);
  const arena=addPlatform(platforms,cfg.length+2,.55,18,.85,mat);
+
+ // STORY ROUTES ---------------------------------------------------------
+ // Forest levels receive an optional elevated route. It is not decorative:
+ // the platforms are part of the collision set and form a genuine alternate
+ // traversal line with extra rewards.
+ if(cfg.worldId==='forest'){
+  const branch=[
+   [26,2.15,4.8],[34,2.65,4.4],[43,2.15,5.0],
+   [54,2.9,4.6],[65,2.35,5.0],[76,2.85,4.8]
+  ];
+  for(let i=0;i<branch.length;i++){
+   const [x,y,w]=branch[i];
+   addPlatform(platforms,x,y,w,.48,mat,{storyRoute:'lion-path'});
+   addCoinLine(items,x-w*.35,y+1.0,Math.max(2,Math.floor(w/1.8)),.8);
+  }
+  // A safe landing shelf connects the high route back to the main route.
+  addPlatform(platforms,88,1.65,7,.5,mat,{storyRoute:'return'});
+ }
+ // Canyon: two moving stepping stones create a second rhythm layer.
+ if(cfg.worldId==='canyon'){
+  for(const [x,y,amp,speed] of [[38,2.0,.9,.9],[68,2.45,1.15,1.05],[101,1.9,.8,1.2]]){
+   addPlatform(platforms,x,y,4.2,.5,mat,{baseY:y,move:{amp,speed,phase:x*.17}});
+   moving.push(platforms.at(-1));
+  }
+ }
+ // Neon: short upper lanes reward confident double-jump chains.
+ if(cfg.worldId==='neon'){
+  for(const [x,y,w] of [[31,2.0,4.5],[47,2.6,4.2],[64,2.1,4.8],[82,2.8,4.5],[100,2.25,5]]){
+   addPlatform(platforms,x,y,w,.45,mat,{storyRoute:'neon-lane'});
+   addCoinLine(items,x-w*.3,y+1,w>=4.5?3:2,.85);
+  }
+ }
+
+ // Story characters are physical scene actors placed on safe platforms.
+ for(const id of (cfg.characters||[])){
+  const charIndex=id==='tamia'?1:2;
+  const base=platforms[Math.min(charIndex,platforms.length-2)];
+  npcs.push({
+   id,x:base.x,y:base.y+base.h/2+.02,z:.15,
+   dialogue:id==='tamia'
+    ?(cfg.index===3
+      ?'Tamia: Da bist du ja! Der Löwenpilz hat auf dich gewartet. Nimm den hohen Pfad.'
+      :'Tamia: Der Wald kennt dich jetzt. Folge den goldenen Spuren.')
+    :(cfg.index===4
+      ?'Shaya: Halt. Siehst du das Licht? Der sichere Weg liegt über dir.'
+      :'Shaya: Zwei Wege, ein Ziel. Wähle den Weg, auf dem du andere schützen kannst.'),
+   role:id
+  });
+ }
+ if(cfg.storyBeat)setpieces.push({type:'storyGate',x:cfg.worldId==='forest'?90:cfg.worldId==='canyon'?cfg.length-18:cfg.length-22,y:1.2});
 
  // Coins are placed as readable routes: reward the intended jump arc.
  for(let i=0;i<platforms.length;i++){
@@ -101,5 +151,5 @@ export function buildLevel(index){
   ? {x:arena.x+2,y:arena.y+2,stats:BOSS_STATS[world.id]||{name:'Wächter',hp:12,speed:2.4,aggro:12,projectile:4}}
   : null;
 
- return {cfg,world,platforms,items,enemies,hazards,goalX:arena.x+6,boss,moving};
+ return {cfg,world,platforms,items,enemies,hazards,goalX:arena.x+6,boss,moving,npcs,setpieces};
 }
