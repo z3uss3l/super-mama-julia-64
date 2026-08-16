@@ -222,7 +222,6 @@ export function animateCharacter(model,dt,state={}){
   p.scarf.rotation.z=Math.sin(u.t*12)*.08+(state.vx?-.08*state.facing:0);
   p.bun.rotation.z=Math.sin(u.t*8)*.04;
   if(p.hairLock)p.hairLock.rotation.z=-.35+Math.sin(u.t*7)*.035;
-  if(p.eyeGlint)p.eyeGlint.visible=!blink;
   if(p.shoeL)p.shoeL.rotation.x=p.legL.rotation.x*.35;
   if(p.shoeR)p.shoeR.rotation.x=p.legR.rotation.x*.35;
   if(p.apronPin)p.apronPin.rotation.y+=dt*3.2;
@@ -232,6 +231,7 @@ export function animateCharacter(model,dt,state={}){
   const blinkCycle=(u.t+0.8)%3.7;
   const blink=blinkCycle>3.48&&blinkCycle<3.58;
   const eyeScale=blink?.18:1;
+  if(p.eyeGlint)p.eyeGlint.visible=!blink;
   p.eye.scale.y=THREE.MathUtils.lerp(p.eye.scale.y,eyeScale,.45);
   p.brow.position.y=1.345+(blink?.012:0);
 
