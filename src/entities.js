@@ -165,15 +165,45 @@ export function animateCharacter(model,dt,state={}){
   const stride=moving?THREE.MathUtils.clamp(.58+speed*.018,.58,.76):.035;
   const swing=moving?Math.sin(cycle)*stride:Math.sin(u.t*2)*.025;
   const opposite=-swing;
+  const stepL=moving?Math.sin(cycle):0;
+  const stepR=moving?Math.sin(cycle+Math.PI):0;
+  const liftL=moving?Math.max(0,-Math.cos(cycle))*.045:0;
+  const liftR=moving?Math.max(0,-Math.cos(cycle+Math.PI))*.045:0;
+
   p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,swing,.34);
   p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,opposite,.34);
   p.armL.rotation.x=THREE.MathUtils.lerp(p.armL.rotation.x,opposite*.72,.30);
   p.armR.rotation.x=THREE.MathUtils.lerp(p.armR.rotation.x,swing*.72,.30);
-  if(p.shoeL)p.shoeL.rotation.x=p.legL.rotation.x*.45;
-  if(p.shoeR)p.shoeR.rotation.x=p.legR.rotation.x*.45;
-  if(p.shoeToeL)p.shoeToeL.rotation.x=p.legL.rotation.x*.45;
-  if(p.shoeToeR)p.shoeToeR.rotation.x=p.legR.rotation.x*.45;
 
+  // Explicit foot travel: shoes are separate meshes and must follow the gait.
+  if(p.legL){
+   p.legL.position.z=THREE.MathUtils.lerp(p.legL.position.z,.03+stepL*.055,.32);
+   p.legL.position.y=THREE.MathUtils.lerp(p.legL.position.y,.39+liftL,.32);
+  }
+  if(p.legR){
+   p.legR.position.z=THREE.MathUtils.lerp(p.legR.position.z,.03+stepR*.055,.32);
+   p.legR.position.y=THREE.MathUtils.lerp(p.legR.position.y,.39+liftR,.32);
+  }
+  if(p.shoeL){
+   p.shoeL.position.z=THREE.MathUtils.lerp(p.shoeL.position.z,.13+stepL*.115,.36);
+   p.shoeL.position.y=THREE.MathUtils.lerp(p.shoeL.position.y,.075+liftL,.36);
+   p.shoeL.rotation.x=p.legL.rotation.x*.45;
+  }
+  if(p.shoeR){
+   p.shoeR.position.z=THREE.MathUtils.lerp(p.shoeR.position.z,.13+stepR*.115,.36);
+   p.shoeR.position.y=THREE.MathUtils.lerp(p.shoeR.position.y,.075+liftR,.36);
+   p.shoeR.rotation.x=p.legR.rotation.x*.45;
+  }
+  if(p.shoeToeL){
+   p.shoeToeL.position.z=THREE.MathUtils.lerp(p.shoeToeL.position.z,.31+stepL*.115,.36);
+   p.shoeToeL.position.y=THREE.MathUtils.lerp(p.shoeToeL.position.y,.08+liftL,.36);
+   p.shoeToeL.rotation.x=p.legL.rotation.x*.45;
+  }
+  if(p.shoeToeR){
+   p.shoeToeR.position.z=THREE.MathUtils.lerp(p.shoeToeR.position.z,.31+stepR*.115,.36);
+   p.shoeToeR.position.y=THREE.MathUtils.lerp(p.shoeToeR.position.y,.08+liftR,.36);
+   p.shoeToeR.rotation.x=p.legR.rotation.x*.45;
+  }
   if(anim==='jump'||anim==='doubleJump'){
    p.legL.rotation.x=THREE.MathUtils.lerp(p.legL.rotation.x,-.28,.38);
    p.legR.rotation.x=THREE.MathUtils.lerp(p.legR.rotation.x,.28,.38);
@@ -201,8 +231,11 @@ export function animateCharacter(model,dt,state={}){
   }
 
   const lean=moving?THREE.MathUtils.clamp((state.vx||0)*-.014,-.12,.12):0;
+  const bob=moving?Math.abs(Math.sin(cycle))*.025:Math.sin(u.t*2)*.012;
   p.torso.rotation.z=THREE.MathUtils.lerp(p.torso.rotation.z,lean,.22);
+  p.torso.position.y=THREE.MathUtils.lerp(p.torso.position.y,.78+bob,.22);
   p.head.rotation.z=THREE.MathUtils.lerp(p.head.rotation.z,moving?-(state.vx||0)*.004:0,.10);
+  p.head.position.y=THREE.MathUtils.lerp(p.head.position.y,1.38+bob*.72,.22);
   p.scarf.rotation.z=Math.sin(u.t*12)*.08-(state.vx||0)*.01;
   p.ponytail.rotation.z=Math.sin(u.t*7)*.05-(state.vx||0)*.02;
   p.ponytailTip.rotation.z=-.28+Math.sin(u.t*8)*.08;
