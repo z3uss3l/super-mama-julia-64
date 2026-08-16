@@ -52,6 +52,17 @@ export class CinematicDirector{
   const p=actor.mesh||actor;
   return {x:p.position.x,y:p.position.y+1,z:p.position.z||0};
  }
+ cancel(){
+  this.active=false;
+  this.type='';
+  this.t=0;
+  this.duration=0;
+  this.done=null;
+  this.ctx=null;
+  this.camera.fov=this.originFov;
+  this.camera.updateProjectionMatrix();
+ }
+
  update(dt){
   if(!this.active)return false;
   this.t+=dt;

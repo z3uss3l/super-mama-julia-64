@@ -79,6 +79,11 @@ export function makePlayer(){
   parts.scarf=meshBox(.62,.08,.5,M(0xff4b7d));
   parts.scarf.position.set(0,.91,.27);
   g.add(parts.scarf);
+  parts.shoeL=meshBox(.23,.12,.34,S(0x11131c));parts.shoeL.position.set(-.18,.08,.12);g.add(parts.shoeL);
+  parts.shoeR=meshBox(.23,.12,.34,S(0x11131c));parts.shoeR.position.set(.18,.08,.12);g.add(parts.shoeR);
+  parts.eyeGlint=new THREE.Mesh(new THREE.SphereGeometry(.016,6,5),S(0xffffff));parts.eyeGlint.position.set(.12,1.30,.397);g.add(parts.eyeGlint);
+  parts.hairLock=limb(.09,.28,.10,M(0xf4c430));parts.hairLock.position.set(.28,1.37,.18);parts.hairLock.rotation.z=-.35;g.add(parts.hairLock);
+  parts.apronPin=new THREE.Mesh(new THREE.OctahedronGeometry(.045),S(0xffd43b));parts.apronPin.position.set(.12,.64,.49);g.add(parts.apronPin);
 
   g.userData={kind:'player',parts,height:1.72,t:0,lastGrounded:false,land:0};
   return g;
@@ -93,6 +98,12 @@ export function makeLion(){
  parts.muzzle=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),M(0xf4bd76));parts.muzzle.scale.set(1,.7,.65);parts.muzzle.position.set(.78,.88,.34);g.add(parts.muzzle);
  parts.nose=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),S(0x3b1d12));parts.nose.position.set(.88,.92,.54);g.add(parts.nose);
  parts.tail=limb(.10,.7,.10,M(0xe88a18));parts.tail.position.set(-.55,.7,0);parts.tail.rotation.z=-.8;g.add(parts.tail);
+ parts.earL=new THREE.Mesh(new THREE.ConeGeometry(.12,.25,6),M(0xe88a18));parts.earL.position.set(.25,1.36,-.22);g.add(parts.earL);
+ parts.earR=parts.earL.clone();parts.earR.position.z=.22;g.add(parts.earR);
+ parts.pawL=meshBox(.22,.16,.34,M(0xe88a18));parts.pawL.position.set(.18,.24,.26);g.add(parts.pawL);
+ parts.pawR=parts.pawL.clone();parts.pawR.position.z=-.26;g.add(parts.pawR);
+ const whisk=new THREE.MeshBasicMaterial({color:0xfff0c2,transparent:true,opacity:.8});
+ for(const z of [-.12,.12]){const w=new THREE.Mesh(new THREE.BoxGeometry(.24,.012,.012),whisk);w.position.set(.95,.90,z);w.rotation.y=.12;g.add(w);}
  g.userData={kind:'lion',parts,t:0};return g;
 }
 
@@ -210,6 +221,11 @@ export function animateCharacter(model,dt,state={}){
   p.head.rotation.z=THREE.MathUtils.lerp(p.head.rotation.z,state.facing<0?.04:-.04,.08);
   p.scarf.rotation.z=Math.sin(u.t*12)*.08+(state.vx?-.08*state.facing:0);
   p.bun.rotation.z=Math.sin(u.t*8)*.04;
+  if(p.hairLock)p.hairLock.rotation.z=-.35+Math.sin(u.t*7)*.035;
+  if(p.eyeGlint)p.eyeGlint.visible=!blink;
+  if(p.shoeL)p.shoeL.rotation.x=p.legL.rotation.x*.35;
+  if(p.shoeR)p.shoeR.rotation.x=p.legR.rotation.x*.35;
+  if(p.apronPin)p.apronPin.rotation.y+=dt*3.2;
   p.hairFringe.rotation.z=THREE.MathUtils.lerp(p.hairFringe.rotation.z,-.16+(state.vx||0)*-.006,.12);
   if(p.cheek)p.cheek.scale.x=1+Math.sin(u.t*3)*.04;
   // Deterministic soft blink: short closed-eye interval without timers.
@@ -225,12 +241,17 @@ export function animateCharacter(model,dt,state={}){
 
   u.animBob=bob;
   const squash=anim==='land'?1.08:anim==='stomp'?1.04:1;
+  const facingSign=Math.sign(model.scale.x)||1;
+  const targetScaleX=1/squash;
+  const nextScaleX=THREE.MathUtils.lerp(Math.abs(model.scale.x),targetScaleX,.28);
   model.scale.y=THREE.MathUtils.lerp(model.scale.y,squash,.28);
-  model.scale.x=THREE.MathUtils.lerp(model.scale.x,1/squash,.28);
+  model.scale.x=facingSign*nextScaleX;
   model.position.y+=bob*.12;
 
  }else if(u.kind==='lion'){
   const swing=Math.sin(cycle)*.25;
+  if(p.earL)p.earL.rotation.z=Math.sin(u.t*2.2)*.06;
+  if(p.earR)p.earR.rotation.z=-Math.sin(u.t*2.2)*.06;
   p.mane.rotation.z=THREE.MathUtils.lerp(p.mane.rotation.z,swing*.25,.22);
   p.tail.rotation.z=THREE.MathUtils.lerp(p.tail.rotation.z,-.8+Math.sin(u.t*6)*.22,.2);
   p.body.rotation.z=THREE.MathUtils.lerp(p.body.rotation.z,Math.sin(u.t*4)*.025,.2);

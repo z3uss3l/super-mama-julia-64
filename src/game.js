@@ -21,14 +21,18 @@ export class Game{
   const mobile=matchMedia('(max-width: 900px)').matches || (navigator.hardwareConcurrency||4)<=4;
   this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.35:1.7));
   this.renderer.outputColorSpace=THREE.SRGBColorSpace;
+  this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  this.renderer.toneMappingExposure=1.12;
+  this.renderer.shadowMap.autoUpdate=true;
   this.renderer.shadowMap.enabled=true;
   this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   this.setupLighting();
   this.projectileGeometry=new THREE.SphereGeometry(.13,7,6);
-  this.projectileMaterial=new THREE.MeshBasicMaterial({color:0xff4d4d});
+  this.projectileMaterial=new THREE.MeshStandardMaterial({color:0xff4d4d,emissive:0xff2200,emissiveIntensity:1.4,roughness:.25});
+  this.runDustTimer=0;this.lastFootstep=0;
   this.clock=new THREE.Clock();this.particles=new Particles(this.scene);this.world=new WorldRuntime(this.scene);
   this.follow=new FollowCamera(this.camera);this.cinematics=new CinematicDirector(this.camera,this.follow,this.particles,this.audio,this.ui);this.progression=new Progression(this.state,ui,this.audio,this.particles);this.decor=null;
-  this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;this.storyFlags=new Set();this.devGodMode=false;;this.epicTimer=0;this.milestones=new Set();this.ambientTimer=0;
+  this.player=null;this.playerModel=null;this.lionModel=null;this.jumpHeldLast=false;this.level=null;this.boss=null;this.projectiles=[];this.running=false;this.lastToast=0;this.storyFlags=new Set();this.storyBeatTimer=null;this.levelToken=0;this.devGodMode=false;this.epicTimer=0;this.milestones=new Set();this.ambientTimer=0;
   this.bind();this.resize();addEventListener('resize',()=>this.resize());this.state.save.unlocks.doubleJump=true;this.ui.setAbilities(this.state.save.unlocks);this.loop();
  }
  setupLighting(){
@@ -39,6 +43,10 @@ export class Game{
   key.shadow.mapSize.set(shadowSize,shadowSize);
   key.shadow.camera.near=1;key.shadow.camera.far=80;
   this.scene.add(key);
+  const rim=new THREE.DirectionalLight(0x9fc7ff,1.1);
+  rim.position.set(8,10,-10);this.scene.add(rim);
+  this.ambientPoint=new THREE.PointLight(0xffd43b,1.0,24,2);
+  this.ambientPoint.position.set(0,5,2);this.scene.add(this.ambientPoint);
  }
  bind(){
   document.getElementById('new').onclick=()=>{this.audio.init();this.state.newGame();this.startLevel(0,true)};
@@ -48,6 +56,9 @@ export class Game{
  }
  resize(){const w=innerWidth,h=innerHeight;this.renderer.setSize(w,h,false);this.follow.resize(w,h)}
  clear(){
+  this.cinematics?.cancel();
+  if(this.storyBeatTimer){clearTimeout(this.storyBeatTimer);this.storyBeatTimer=null;}
+  this.levelToken=(this.levelToken||0)+1;
   // Projectiles use shared geometry/material; remove them before world disposal.
   for(const p of this.projectiles)this.scene.remove(p.mesh);
   this.projectiles=[];
@@ -73,8 +84,16 @@ export class Game{
   this.ui.hideScreen();this.ui.hideBoss();this.ui.setAbilities(this.state.save.unlocks);
   this.ui.setObjective(this.level.cfg.quest);
   this.ui.setLevel(`${this.level.cfg.name} · ${index+1}/${LEVELS.length}`);
+  const token=this.levelToken;
   if(this.level.cfg.story?.intro)this.ui.toast(`📖 ${this.level.cfg.story.chapter}: ${this.level.cfg.story.intro}`);
-  if(this.level.cfg.storyBeat)setTimeout(()=>{if(this.state.mode==='play')this.ui.toast(`✨ ${this.level.cfg.storyBeat}`)},650);
+  if(this.level.cfg.storyBeat){
+   this.storyBeatTimer=setTimeout(()=>{
+    this.storyBeatTimer=null;
+    if(this.levelToken===token&&this.state.mode==='play'&&this.level?.cfg?.storyBeat===this.level.cfg.storyBeat){
+     this.ui.toast(`✨ ${this.level.cfg.storyBeat}`);
+    }
+   },650);
+  }
   this.audio.power();
   if(newRun||!cp){
    setTimeout(()=>{
@@ -85,7 +104,7 @@ export class Game{
   }
  }
  spawnBoss(){const b=this.level.boss;this.world.addBoss(b);this.boss=this.world.boss;this.audio.boss();this.ui.showBoss(b.stats.name,b.hp,b.hp)}
- togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V7.3.3')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
+ togglePause(){if(this.state.mode==='play'){this.state.mode='pause';this.state.persist();this.ui.showScreen('PAUSE','Fortschritt und Checkpoint sind gesichert.','V8.0.0')}else if(this.state.mode==='pause'){this.state.mode='play';this.ui.hideScreen()}}
  jump(){
   const p=this.player;
   if(!p)return false;
@@ -171,8 +190,8 @@ export class Game{
   this.state.combo++;
   this.state.comboTimer=GAME.comboWindow;
   this.ui.setCombo(this.state.combo);if(this.state.combo>=2)this.ui.toast(`💥 COMBO x${this.state.combo}`);
-  this.audio.hit();
-  this.particles.burst(e.mesh.position,0xffd43b,18,6.5);
+  this.audio.stomp();
+  this.particles.burst(e.mesh.position,0xffd43b,22,7.2);
   this.particles.burst(e.mesh.position,e.type==='slime'?0x7cff7c:e.type==='bat'?0xff6b73:e.type==='runner'?0xb88cff:0xffb04a,10,4.5);
   this.follow.kick(.065);
   return true;
@@ -430,6 +449,12 @@ export class Game{
    return;
   }
   this.input.sync();
+  if(this.cinematics.active){
+   this.cinematics.update(dt);
+   this.particles.update(dt);
+   this.input.consume();
+   return;
+  }
   const jumpDown=this.input.jump===true;
   const jumpEdge=this.input.jumpPressed===true || (jumpDown&&!this.jumpHeldLast);
   if(jumpEdge){const jumped=this.jump();if(!jumped)p.jumpBuffer=GAME.jumpBuffer;}
@@ -445,6 +470,17 @@ export class Game{
   }
   if(this.input.dashPressed)this.dash();
   this.world.update(dt);if(this.decor)this.decor.update(dt,p.x);this.updateStoryActors();this.updateEpicFlow(dt);
+  if(this.ambientPoint){
+   this.ambientPoint.position.set(p.x+2,Math.max(2,p.y+3),1.8);
+   this.ambientPoint.color.setHex(this.level.world.accent);
+   this.ambientPoint.intensity=.65+Math.min(1,Math.abs(p.vx)/8.6)*.55;
+  }
+  this.runDustTimer=Math.max(0,this.runDustTimer-dt);
+  if(p.grounded&&Math.abs(p.vx)>4.8&&this.runDustTimer<=0){
+   this.runDustTimer=GAME.runDustInterval;
+   this.particles.burst(this.playerModel.position,this.level.world.accent,2,1.1);
+   if(performance.now()-this.lastFootstep>130){this.lastFootstep=performance.now();this.audio.tone(78+Math.random()*18,.025,'sine',.012);}
+  }
   if(this.cinematics.active){
    this.cinematics.update(dt);
    this.particles.update(dt);
@@ -456,9 +492,12 @@ export class Game{
   const stompPrevY=p.y;
   const stompPrevVy=p.vy;
   p.wasDescending=stompPrevVy < -0.05;
-  p.vy+=GAME.gravity*dt;
+  const gravity=p.vy>0
+   ?(this.input.jump?GAME.jumpHoldGravity:GAME.gravity)
+   :GAME.fallGravity;
+  p.vy+=gravity*dt;
   const physics=resolvePlayer(p,this.level.platforms,dt);
-  if(physics.landed){p.land=.12;p.anim='land';p.animTimer=.16;this.triggerFeedback('land',1);this.particles.burst(this.playerModel.position,0xffffff,5,2.2);this.follow.kick(.035)}
+  if(physics.landed){p.land=.12;p.anim='land';p.animTimer=.16;this.triggerFeedback('land',1);this.audio.land();this.particles.burst(this.playerModel.position,0xffffff,7,2.6);this.follow.kick(.035)}
   p.land=Math.max(0,(p.land||0)-dt);
   if(wasGrounded&&!p.grounded&&p.vy<=0)p.coyote=GAME.coyoteTime;
   else if(p.grounded)p.coyote=0;
@@ -515,7 +554,7 @@ export class Game{
    else if(p.attack>0)p.anim='attack';
   }
   if(p.y<-3)this.hurt(true);
-  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=0;
+  this.playerModel.position.set(p.x,p.y,0);this.playerModel.rotation.y=p.facing>0?-.22:.22;
   const jumpStretch=p.grounded?1:1.05;
   const attackSquash=p.attack>0?.92:1;
   const landSquash=p.land>0?1-.12*(p.land/.12):1;
@@ -524,7 +563,7 @@ export class Game{
   animateCharacter(this.playerModel,dt,p);
   animateCharacter(this.lionModel,dt,p);
   this.playerModel.visible=!p.lion&&(p.inv<=0||Math.floor(p.inv*14)%2===0);
-  this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);this.lionModel.rotation.y=0;this.lionModel.scale.x=p.facing<0?-1:1;
+  this.lionModel.visible=!!p.lion;this.lionModel.position.set(p.x-.75*p.facing,p.y,0);this.lionModel.rotation.y=p.facing>0?-.16:.16;this.lionModel.scale.x=p.facing<0?-1:1;
   if(p.transform>0){
    const t=1-p.transform/.90;
    const pulse=1+Math.sin(t*Math.PI)*.18;
@@ -542,6 +581,7 @@ export class Game{
    this.particles.burst(this.playerModel.position,0xff8a2b,24,7);
    this.particles.burst(this.playerModel.position,0xfff3b0,16,4);this.particles.shockwave(this.playerModel.position,0xffd43b,2.8,.55);this.follow.pulse(.22,.8);
    this.ui.toast('🦁 LÖWENKRAFT ERWACHT!');
+   this.audio.transform();
    this.follow.kick(.18);
    if(!this.cinematics.active){
     this.cinematics.start('lion',{player:p,npcs:this.world.npcs,accent:0xffd43b});
@@ -576,9 +616,9 @@ export class Game{
   if(this.level.boss&&!this.state.bossDefeated){if(performance.now()-this.lastToast>1200){this.lastToast=performance.now();this.ui.toast('👹 Boss zuerst besiegen')}return}
   const t=(performance.now()-this.state.levelStart)/1000;this.state.markLevelComplete(this.state.level,t);this.state.addScore(Math.max(0,5000-Math.floor(t*18)));
   if(this.state.level===1)this.state.unlock('doubleJump');if(this.state.level===3)this.state.unlock('shield');if(this.state.level===7)this.state.unlock('starPower');if(this.state.level===9)this.state.unlock('dash');
-  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …` ,'V7.3.3');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
+  this.state.persist();this.ui.setAbilities(this.state.save.unlocks);this.ui.showScreen('LEVEL GESCHAFFT',`${this.level.cfg.name}\nZeit ${t.toFixed(1)} s · Score ${this.state.score}\nNächstes Level wird geladen …` ,'V8.0.0');this.state.mode='pause';setTimeout(()=>this.startLevel(this.state.level+1,false),1200)
  }
- gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V7.3.3')}
- win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}` ,'V7.3.3');this.audio.win()}
+ gameOver(){this.state.mode='over';this.state.persist();this.ui.showScreen('GAME OVER',`Score ${this.state.score}\nLevel ${this.state.level+1}/${LEVELS.length}\nCheckpoint bleibt erhalten.`,'V8.0.0')}
+ win(){this.state.mode='win';this.state.persist();this.ui.showScreen('🎉 GERETTET!',`Julia hat alle 15 Level geschafft!\nScore ${this.state.score} · ${this.state.coins} Münzen\nKills ${this.state.save.stats.kills} · Bosse ${this.state.save.stats.bosses}` ,'V8.0.0');this.audio.win()}
  loop(){requestAnimationFrame(()=>this.loop());const dt=Math.min(.033,this.clock.getDelta());this.update(dt);this.renderer.render(this.scene,this.camera)}
 }

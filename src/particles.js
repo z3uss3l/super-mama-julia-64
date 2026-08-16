@@ -81,8 +81,8 @@ export class Particles{
    u.life-=safeDt;
    p.position.addScaledVector(u.v,safeDt);
    u.v.y-=12*safeDt;
-   p.rotation.x+=safeDt*7;
-   p.rotation.y+=safeDt*9;
+   p.rotation.x+=safeDt*(7+u.spin*.2);
+   p.rotation.y+=safeDt*(9+u.spin*.35);
    const alpha=Math.max(0,u.life/u.maxLife);
    p.material.opacity=alpha;
    // Never derive the next frame's size from the already-scaled mesh.

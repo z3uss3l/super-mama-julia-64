@@ -18,6 +18,12 @@ export class Progression{
   }
   else if(type==='star'){this.state.unlock('starPower');player.star=8;this.state.addScore(750);this.ui.toast('⭐ Sternkraft');this.audio.power()}
   else if(type==='key'){this.state.unlock('dash');this.state.addScore(1000);this.ui.toast('↯ Dash freigeschaltet');this.audio.power()}
+  else if(type==='relic'){
+   this.state.save.stats.easterEggs=(this.state.save.stats.easterEggs||0)+1;
+   this.state.addScore(777);
+   this.ui.toast('🥚 GEHEIMNIS ENTDECKT · +777');
+   this.audio.secret();
+  }
   this.state.persist();this.particles.burst(model.position,0xffd43b,12,5);
  }
 }

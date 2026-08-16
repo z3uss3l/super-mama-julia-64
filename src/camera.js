@@ -2,7 +2,7 @@ import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
 export class FollowCamera{
  constructor(camera){
   this.camera=camera;this.target=new THREE.Vector3();this.desired=new THREE.Vector3();
-  this.shake=0;this.lookAhead=0;this.zoom=0;this.cinematic=0;this.baseFov=58
+  this.shake=0;this.lookAhead=0;this.lookY=0;this.zoom=0;this.cinematic=0;this.baseFov=58
  }
  resize(w,h){this.camera.aspect=w/h;this.camera.updateProjectionMatrix()}
  kick(amount=.08){this.shake=Math.max(this.shake,amount)}
@@ -13,8 +13,9 @@ export class FollowCamera{
  follow(x,y,dt,vx=0,vy=0){
   const lead=THREE.MathUtils.clamp(vx*.22,-2.2,2.2);
   const vertical=THREE.MathUtils.clamp(vy*.06,-.7,.7);
-  this.lookAhead += (lead-this.lookAhead)*(1-Math.exp(-5*dt));
-  this.desired.set(x+4.5+this.lookAhead,Math.max(3.8,y+3.5+vertical),12.5);
+  this.lookAhead += (lead-this.lookAhead)*(1-Math.exp(-5.8*dt));
+  this.lookY += (vertical-this.lookY)*(1-Math.exp(-4.5*dt));
+  this.desired.set(x+4.5+this.lookAhead,Math.max(3.8,y+3.5+this.lookY),12.5);
   this.camera.position.lerp(this.desired,1-Math.pow(.0008,dt));
   const s=this.shake>0?(Math.random()-.5)*this.shake:0;this.shake=Math.max(0,this.shake-dt*.7);
   const speed=Math.min(1,Math.abs(vx)/8.6);

@@ -33,9 +33,10 @@ export class WorldRuntime{
    const m=meshBox(h.w,.12,4,new THREE.MeshStandardMaterial({color:0xff304f,emissive:0x550011,emissiveIntensity:.7}));m.position.set(h.x,-.28,.04);this.scene.add(m);this.objects.push(m);h.mesh=m;
   }
   for(const it of level.items){
-   const color={coin:0xffd43b,crystal:0x45d9ff,heart:0xff3b79,star:0xffffff,key:0x8b5cf6,mushroom:0xff4b7d}[it.type]||0xffffff;
+   const color={coin:0xffd43b,crystal:0x45d9ff,heart:0xff3b79,star:0xffffff,key:0x8b5cf6,mushroom:0xff4b7d,relic:0xff66ff}[it.type]||0xffffff;
    let geo;
    if(it.type==='coin') geo=new THREE.TorusGeometry(.19,.065,8,14);
+   else if(it.type==='relic') geo=new THREE.DodecahedronGeometry(.25,1);
    else if(it.type==='mushroom') geo=new THREE.SphereGeometry(.32,16,10);
    else geo=new THREE.OctahedronGeometry(.22);
    const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.45,metalness:.08,emissive:color,emissiveIntensity:(it.type==='star'||it.type==='mushroom')?.35:0.04}));
@@ -59,6 +60,10 @@ export class WorldRuntime{
       spot.scale.y=.38;
       m.add(spot);
     }
+    const aura=new THREE.Mesh(new THREE.TorusGeometry(.52,.018,8,24),
+      new THREE.MeshBasicMaterial({color:0xffd43b,transparent:true,opacity:.48}));
+    aura.rotation.x=Math.PI/2;aura.position.y=-.22;m.add(aura);
+    m.userData.aura=aura;
     m.userData.mushroom=true;
     m.userData.baseY=it.y;
     m.userData.phase=Math.random()*Math.PI*2;
@@ -145,6 +150,11 @@ export class WorldRuntime{
     it.mesh.position.y=it.y+Math.sin(t*2.6+(it.mesh.userData.phase||0))*.10;
     const s=1+Math.sin(t*5.2+(it.mesh.userData.phase||0))*.045;
     it.mesh.scale.x=s;it.mesh.scale.z=s;
+    if(it.mesh.userData.aura){
+     it.mesh.userData.aura.rotation.z+=dt*1.7;
+     it.mesh.userData.aura.scale.setScalar(1+Math.sin(t*4+(it.mesh.userData.phase||0))*.16);
+     it.mesh.userData.aura.material.opacity=.28+.22*(.5+.5*Math.sin(t*5+(it.mesh.userData.phase||0)));
+    }
    }
   }
   for(const p of this.level?.moving||[]){

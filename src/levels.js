@@ -130,6 +130,11 @@ export function buildLevel(index){
   });
  }
 
+ // Tiny deterministic easter eggs: optional and deliberately off the main line.
+ const secretIndex=(cfg.index*3+2)%(Math.max(3,platforms.length-4))+2;
+ const secretPlatform=platforms[Math.min(secretIndex,platforms.length-3)];
+ items.push({type:'relic',x:secretPlatform.x+(cfg.index%2?-.55:.55),y:secretPlatform.y+2.15,z:0,secret:true});
+
  // Vertical challenge coins and utility pickups.
  for(let i=2;i<platforms.length-2;i+=4){
   const p=platforms[i];
